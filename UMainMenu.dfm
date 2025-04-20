@@ -38,27 +38,6 @@ object MainForm: TMainForm
       Height = 15
       Caption = 'Waiting orders'
     end
-    object Label2: TLabel
-      Left = 744
-      Top = 1
-      Width = 38
-      Height = 15
-      Caption = 'nq_avg'
-    end
-    object Label3: TLabel
-      Left = 824
-      Top = 1
-      Width = 38
-      Height = 15
-      Caption = 'nq_avg'
-    end
-    object Label4: TLabel
-      Left = 896
-      Top = 1
-      Width = 38
-      Height = 15
-      Caption = 'nq_avg'
-    end
     object FileNameLabeledEdit: TLabeledEdit
       Left = 4
       Top = 20
@@ -162,7 +141,7 @@ object MainForm: TMainForm
     Top = 49
     Width = 1359
     Height = 732
-    ActivePage = Marcov2TabSheet
+    ActivePage = GraphTabSheet
     Align = alClient
     TabOrder = 1
     ExplicitWidth = 1355
@@ -239,20 +218,18 @@ object MainForm: TMainForm
         TabOrder = 0
         DefaultCanvas = ''
         ColorPaletteIndex = 13
-        object Series3: TLineSeries
-          HoverElement = [heCurrent]
+        object Series3: TFastLineSeries
+          HoverElement = []
           SeriesColor = -1
           Title = 'RawData'
-          Brush.BackColor = clDefault
-          Dark3D = False
-          InflateMargins = False
-          Pointer.InflateMargins = True
-          Pointer.Style = psRectangle
+          FastPen = True
+          LinePen.Color = -1
+          LinePen.EndStyle = esRound
+          TreatNulls = tnDontPaint
           XValues.Name = 'X'
           XValues.Order = loNone
           YValues.Name = 'Y'
           YValues.Order = loNone
-          Transparency = 43
         end
         object Series1: TPointSeries
           HoverElement = [heCurrent]
@@ -308,7 +285,6 @@ object MainForm: TMainForm
         Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goFixedRowDefAlign]
         TabOrder = 0
         OnDrawCell = MarcovStringGrid1DrawCell
-        ExplicitHeight = 701
       end
     end
     object Marcov2TabSheet: TTabSheet
@@ -331,6 +307,7 @@ object MainForm: TMainForm
         ParentCtl3D = False
         TabOrder = 0
         OnDrawCell = MarcovStringGrid2DrawCell
+        ExplicitHeight = 701
       end
       object spectrumStringGrid: TStringGrid
         Left = 1230
@@ -345,6 +322,8 @@ object MainForm: TMainForm
         FixedColor = clMoneyGreen
         RowCount = 33
         TabOrder = 1
+        ExplicitLeft = 1226
+        ExplicitHeight = 701
       end
     end
     object SpectraTabSheet: TTabSheet

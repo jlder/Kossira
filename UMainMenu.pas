@@ -27,7 +27,6 @@ type
     Series1: TPointSeries;
     Series2: TPointSeries;
     ProgressBar1: TProgressBar;
-    Series3: TLineSeries;
     Markov1TabSheet: TTabSheet;
     MarcovStringGrid1: TStringGrid;
     Marcov2TabSheet: TTabSheet;
@@ -60,9 +59,7 @@ type
     RunningLabel: TLabel;
     PrintSpectra1: TMenuItem;
     GraphCheckBox: TCheckBox;
-    Label2: TLabel;
-    Label3: TLabel;
-    Label4: TLabel;
+    Series3: TFastLineSeries;
     procedure RunButtonClick(Sender: TObject);
     procedure ConfButtonClick(Sender: TObject);
     procedure Open1Click(Sender: TObject);
@@ -93,8 +90,6 @@ var
   InputFile: TextFile;
   Temps, StartTime, StopTime: Extended;
   Classes, Occurs: Extended;
-var
-  Start, EndTime1, Duration1, EndTime2, Duration2, EndTime3, Duration3: Cardinal;
 
 implementation
 
@@ -226,7 +221,7 @@ Var
   i, j, k, col, raw: Integer;
   deltaT: Extended;
   Line: String;
-  LinePosition: Integer;
+  LinePosition,LineCount: Integer;
   ss: TStringList;
   count, n, n_1, nq, nq_1, nq_avg, slope, slope_1, minmax, minmax_1: Integer;
   nf, nff, nff_sum, nff_avg: Extended;
@@ -289,7 +284,7 @@ Var
     end;
     // keep track of last n
     n_1 := n;
-    ProgressBar1.Position := Round((Temps - StartTime) / (StopTime - StartTime) * 100.0);
+   if LineCount mod 1000 =0 then  ProgressBar1.Position := Round((Temps - StartTime) / (StopTime - StartTime) * 100.0);
   end;
 
 begin
@@ -297,7 +292,6 @@ begin
   Sleep(500);
   Application.ProcessMessages;
   // Cleaning memos and curves
-  Start := GetTickCount;
   Memo1.Clear;
   Memo2.Clear;
   Memo3.Clear;
@@ -337,6 +331,7 @@ begin
   minmax := 1;
   minmax_1 := 1;
   LinePosition := 0;
+  LineCount:=0;
   StartTime := StrToFloat(StartLabeledEdit.Text);
   StopTime := StrToFloat(StopLabeledEdit.Text);
   deltaT := StrToFloat(ConfForm.dtLabeledEdit.Text);
@@ -404,8 +399,6 @@ begin
   Chart1.Axes.Left.Automatic := False;
   Chart1.Axes.Left.Maximum := HighG;
   Chart1.Axes.Left.Minimum := LowG;
-  EndTime1 := GetTickCount;
-  Duration1:=EndTime1-Start;
   // Compute nq_avg
   if RadioGroup1.ItemIndex = 0 then
   begin
@@ -425,6 +418,7 @@ begin
     While Not EoF(InputFile) do
     begin
       Readln(InputFile, Line);
+      Inc(LineCount);
       ss.CommaText := Line;
       i := ss.count;
       if (Temps <= StartTime) then
@@ -447,7 +441,7 @@ begin
             count := count + 1;
           end;
         end;
-      end
+    end
       else
       begin
         Temps := StrToFloat(ss[0]);
@@ -468,18 +462,17 @@ begin
       // Graph nf for entire file
       if GraphCheckBox.Checked then
         Series3.AddXY(Temps, nf);
-      ProgressBar1.Position := Round(Temps / StopTime * 100.0);
+      if LineCount mod 1000 =0 then ProgressBar1.Position := Round(Temps / StopTime * 100.0);
     end;
     // compute average low resolution nq
     nq_avg := trunc((nff_sum / count - LowG) / QuantumRough);
     Label1.Caption := Format('nq_avg = %8d', [nq_avg]);
     LigneAGrossir := nq_avg;
     Application.ProcessMessages;
-  EndTime2 := GetTickCount;
-  Duration2:=EndTime2-EndTime1;
 
     Sleep(1000);
     ProgressBar1.Position := 0;
+    LineCount:=0;
     // reset file to begining
     Reset(InputFile);
     // Read the file first two lines
@@ -497,6 +490,7 @@ begin
     While Not EoF(InputFile) and (Temps >= StartTime) and (Temps <= StopTime) do
     begin
       Readln(InputFile, Line);
+      inc(LineCount);
       ss.CommaText := Line;
       i := ss.count;
       if RadioGroup1.ItemIndex = 2 then
@@ -527,8 +521,6 @@ begin
   End;
   Fin := StopTime;
 
-  EndTime3 := GetTickCount;
-  Duration3:=EndTime3-EndTime2;
   for i := 0 to 31 do
     for j := 0 to 31 do
     Begin
@@ -605,11 +597,6 @@ begin
   Memo3.Lines.EndUpdate;
   Memo4.Lines.EndUpdate;
   RunningLabel.Caption := 'Complete';
-  EndTime2 := GetTickCount;
-  Label1.Caption:=IntToStr(Duration1);
-  Label2.Caption:=IntToStr(Duration2);
-  Label3.Caption:=IntToStr(Duration3);
-  Label4.Caption:=IntToStr(EndTime2-EndTime3);
 end;
 
 end.
