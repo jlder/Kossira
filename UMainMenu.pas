@@ -128,7 +128,7 @@ end;
 
 procedure TMainForm.MarcovStringGrid1DrawCell(Sender: TObject; ACol, ARow: Integer; Rect: TRect; State: TGridDrawState);
 begin
-  if ARow = LigneAGrossir then
+  if ARow = 32-LigneAGrossir then
   begin
     MarcovStringGrid1.Canvas.Pen.Color := clBlack;
     MarcovStringGrid1.Canvas.Pen.Width := 2; // Largeur renforcée
@@ -140,7 +140,7 @@ end;
 
 procedure TMainForm.MarcovStringGrid2DrawCell(Sender: TObject; ACol, ARow: Integer; Rect: TRect; State: TGridDrawState);
 begin
-  if ARow = LigneAGrossir then
+  if ARow = 32-LigneAGrossir then
   begin
     MarcovStringGrid2.Canvas.Pen.Color := clBlack;
     MarcovStringGrid2.Canvas.Pen.Width := 2; // Largeur renforcée
@@ -383,7 +383,7 @@ begin
       MarcovStringGrid1.Cells[j + 1, 32 - i] := '';
       MarcovStringGrid2.Cells[j + 1, 32 - i] := '';
     end;
-    spectrumStringGrid.Cells[i, 1] := '';
+    spectrumStringGrid.Cells[1, i] := '';
   end;
   for i := 0 to 31 do
     for j := 0 to 31 do

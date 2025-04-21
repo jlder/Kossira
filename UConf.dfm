@@ -2,8 +2,8 @@ object ConfForm: TConfForm
   Left = 0
   Top = 0
   Caption = 'Configuration'
-  ClientHeight = 164
-  ClientWidth = 616
+  ClientHeight = 163
+  ClientWidth = 612
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -14,7 +14,7 @@ object ConfForm: TConfForm
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 616
+    Width = 612
     Height = 81
     Align = alTop
     Caption = 'Discretization'
@@ -92,7 +92,7 @@ object ConfForm: TConfForm
   object Panel2: TPanel
     Left = 0
     Top = 81
-    Width = 616
+    Width = 612
     Height = 72
     Align = alTop
     Caption = 'Filtering'

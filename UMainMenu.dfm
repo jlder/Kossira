@@ -216,6 +216,8 @@ object MainForm: TMainForm
         View3D = False
         Align = alClient
         TabOrder = 0
+        ExplicitWidth = 1347
+        ExplicitHeight = 701
         DefaultCanvas = ''
         ColorPaletteIndex = 13
         object Series3: TFastLineSeries
