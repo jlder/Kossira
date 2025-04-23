@@ -20,6 +20,8 @@ type
     FrstLabeledEdit: TLabeledEdit;
     dtLabeledEdit: TLabeledEdit;
     ShowDataCheckBox: TCheckBox;
+    DistCdGxLabeledEdit: TLabeledEdit;
+    DistCdGzLabeledEdit: TLabeledEdit;
     procedure ValidationButtonClick(Sender: TObject);
   private
     { Déclarations privées }
@@ -32,6 +34,7 @@ var
   Quantum, QuantumRough : Extended;
   HighG, LowG, Dynamique:Extended;
   ClassNumbers, UnderSample:Integer;
+  deltaT,distCdGx,distCdGz:Extended;
 
 implementation
 
@@ -44,6 +47,9 @@ HighG:=StrToFloat(HighgLabeledEdit.Text);
 LowG:=StrToFloat(LowgLabeledEdit.Text);
 ClassNumbers:=StrToInt(ClassNumbersLabeledEdit.Text);
 UnderSample:=StrToInt(UnderSampleLabeledEdit.Text);
+distCdGx:=StrToFloat(DistCdGxLabeledEdit.Text);
+distCdGz:=StrToFloat(DistCdGzLabeledEdit.Text);
+deltaT := StrToFloat(ConfForm.dtLabeledEdit.Text);
 
 Dynamique:=HighG-LowG;
 Quantum:=Dynamique/ClassNumbers;

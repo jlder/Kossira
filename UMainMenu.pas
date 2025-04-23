@@ -21,7 +21,6 @@ type
     GraphTabSheet: TTabSheet;
     Memo2: TMemo;
     Memo3: TMemo;
-    ConfButton: TButton;
     Memo4: TMemo;
     Chart1: TChart;
     Series1: TPointSeries;
@@ -60,6 +59,9 @@ type
     PrintSpectra1: TMenuItem;
     GraphCheckBox: TCheckBox;
     Series3: TFastLineSeries;
+    Series6: TFastLineSeries;
+    ParalaxeCheckBox: TCheckBox;
+    FiltrageAB1: TMenuItem;
     procedure RunButtonClick(Sender: TObject);
     procedure ConfButtonClick(Sender: TObject);
     procedure Open1Click(Sender: TObject);
@@ -74,6 +76,7 @@ type
     procedure MarcovStringGrid2DrawCell(Sender: TObject; ACol, ARow: Integer; Rect: TRect; State: TGridDrawState);
     procedure MarcovStringGrid1DrawCell(Sender: TObject; ACol, ARow: Integer; Rect: TRect; State: TGridDrawState);
     procedure PrintSpectra1Click(Sender: TObject);
+    procedure FiltrageAB1Click(Sender: TObject);
   private
     { Déclarations privées }
     LigneAGrossir: Integer; // Stocke le numéro de la ligne à renforcer  public
@@ -96,7 +99,7 @@ implementation
 {$R *.dfm}
 
 // {$R InfoVersion.res}
-uses UConf, UDoc, FilterButterworth, UAPropos;
+uses UConf, UDoc, FilterButterworth, UAPropos, UFiltrages_AB,UFifoSingle;
 
 Const // [col,ligne]
   Markov1_test: Array [0 .. 5, 0 .. 5] of Integer = (
@@ -121,6 +124,11 @@ begin
   ConfForm.Show;
 end;
 
+procedure TMainForm.FiltrageAB1Click(Sender: TObject);
+begin
+Form3.Show;
+end;
+
 procedure TMainForm.Help2Click(Sender: TObject);
 begin
   DocForm.Show;
@@ -128,7 +136,7 @@ end;
 
 procedure TMainForm.MarcovStringGrid1DrawCell(Sender: TObject; ACol, ARow: Integer; Rect: TRect; State: TGridDrawState);
 begin
-  if ARow = 32-LigneAGrossir then
+  if ARow = 32 - LigneAGrossir then
   begin
     MarcovStringGrid1.Canvas.Pen.Color := clBlack;
     MarcovStringGrid1.Canvas.Pen.Width := 2; // Largeur renforcée
@@ -140,7 +148,7 @@ end;
 
 procedure TMainForm.MarcovStringGrid2DrawCell(Sender: TObject; ACol, ARow: Integer; Rect: TRect; State: TGridDrawState);
 begin
-  if ARow = 32-LigneAGrossir then
+  if ARow = 32 - LigneAGrossir then
   begin
     MarcovStringGrid2.Canvas.Pen.Color := clBlack;
     MarcovStringGrid2.Canvas.Pen.Width := 2; // Largeur renforcée
@@ -219,9 +227,8 @@ end;
 procedure TMainForm.RunButtonClick(Sender: TObject);
 Var
   i, j, k, col, raw: Integer;
-  deltaT: Extended;
   Line: String;
-  LinePosition,LineCount: Integer;
+  LinePosition, LineCount: Integer;
   ss: TStringList;
   count, n, n_1, nq, nq_1, nq_avg, slope, slope_1, minmax, minmax_1: Integer;
   nf, nff, nff_sum, nff_avg: Extended;
@@ -230,6 +237,12 @@ Var
   spectrum: Array [0 .. 31] of Integer;
   Markov1, Markov2: Array [0 .. 31, 0 .. 31] of Integer;
   Debut, Fin: Extended;
+  gy, gy_old,dgy_dt, para_nz: Extended;
+  gx_AB, gy_AB, gz_AB: TAlphaBeta;
+  ax_AB, ay_AB, az_AB: TAlphaBeta;
+  NAccel, NGyro: Integer;
+  AccelOutlier, AccelMin, AccelMax, GyroOutlier, GyroMin, GyroMax: Extended;
+  Fifo: TFifo;
 
   Procedure Exploite_data;
   begin
@@ -284,13 +297,15 @@ Var
     end;
     // keep track of last n
     n_1 := n;
-   if LineCount mod 1000 =0 then  ProgressBar1.Position := Round((Temps - StartTime) / (StopTime - StartTime) * 100.0);
+    if LineCount mod 1000 = 0 then
+      ProgressBar1.Position := Round((Temps - StartTime) / (StopTime - StartTime) * 100.0);
   end;
 
 begin
   RunningLabel.Caption := 'Running';
-  Sleep(500);
+  Sleep(50);
   Application.ProcessMessages;
+  ConfForm.ValidationButtonClick(Sender);
   // Cleaning memos and curves
   Memo1.Clear;
   Memo2.Clear;
@@ -301,6 +316,7 @@ begin
   Series3.Clear;
   Series4.Clear;
   Series5.Clear;
+  Series6.Clear;
   // Lecture du fichier de données
   FileName := FileNameLabeledEdit.Text;
   if FileExists(FileName) then
@@ -331,10 +347,9 @@ begin
   minmax := 1;
   minmax_1 := 1;
   LinePosition := 0;
-  LineCount:=0;
+  LineCount := 0;
   StartTime := StrToFloat(StartLabeledEdit.Text);
   StopTime := StrToFloat(StopLabeledEdit.Text);
-  deltaT := StrToFloat(ConfForm.dtLabeledEdit.Text);
   fc := StrToFloat(ConfForm.FrstLabeledEdit.Text);
   if fc > 0.5 / deltaT then
   Begin
@@ -375,7 +390,10 @@ begin
   for i := 1 to 1 do
     spectrumStringGrid.Cells[i, 0] := IntToStr(i); // initialisation de l'entête des colonnes
   for i := 1 to 32 do
+  begin
     spectrumStringGrid.Cells[0, 33 - i] := IntToStr(i); // initialisation de l'entête des colonnes
+    spectrumStringGrid.Cells[1, 33 - i] := '';
+  end;
   for i := 0 to 31 do
   begin
     for j := 0 to 31 do
@@ -383,7 +401,6 @@ begin
       MarcovStringGrid1.Cells[j + 1, 32 - i] := '';
       MarcovStringGrid2.Cells[j + 1, 32 - i] := '';
     end;
-    spectrumStringGrid.Cells[1, i] := '';
   end;
   for i := 0 to 31 do
     for j := 0 to 31 do
@@ -399,6 +416,18 @@ begin
   Chart1.Axes.Left.Automatic := False;
   Chart1.Axes.Left.Maximum := HighG;
   Chart1.Axes.Left.Minimum := LowG;
+  NAccel := StrToInt(Form3.NAccelLabeledEdit.Text);
+  NGyro := StrToInt(Form3.NGyroLabeledEdit.Text);
+  AccelOutlier := StrToFloat(Form3.OutlierLabeledEdit.Text);
+  GyroOutlier := StrToFloat(Form3.GOutlierLabeledEdit.Text);
+  AccelMin := StrToFloat(Form3.NMinLabeledEdit.Text);
+  GyroMin := StrToFloat(Form3.GMinLabeledEdit.Text);
+  AccelMax := StrToFloat(Form3.NMaxLabeledEdit.Text);
+  GyroMax := StrToFloat(Form3.GMaxLabeledEdit.Text);
+  gy_AB := TAlphaBeta.Create(NGyro, deltaT, GyroOutlier, GyroMin, GyroMax);
+  az_AB := TAlphaBeta.Create(NAccel, deltaT, AccelOutlier, AccelMin, AccelMax);
+  InitFifo(Fifo);
+
   // Compute nq_avg
   if RadioGroup1.ItemIndex = 0 then
   begin
@@ -429,19 +458,27 @@ begin
         begin
           Temps := StrToFloat(ss[2]) / 1000.0;
           nf := -StrToFloat(ss[5]) / 10000.0 / 9.807;
+          gy := StrToFloat(ss[7]) / 100000.0;
+          az_AB.ABupdate(deltaT, nf);
+          gy_AB.ABupdate(deltaT, gy);
+          // apply accel & gyro filters
+          nff := az_AB.ABfilt;
+          gy := gy_AB.ABfilt;
+          if Not IsFifoEmpty(Fifo) then Dequeue(Fifo,gy_old) else gy_old:=gy;
+          Enqueue(Fifo,gy);
+          gy:=gy_old;
+          dgy_dt := gy_AB.ABprim;
+          para_nz := -DistCdGz * gy * gy + DistCdGx * dgy_dt;
+          if ParalaxeCheckBox.Checked then
+            nf := nf + para_nz;
           if (Temps >= StartTime) and (Temps <= StopTime) then
           begin
-            // filter data to remove noise
-            if fc > 0 then
-              Filter.ProcessData(deltaT, nf, nff) // nff corresponds to filtered load factor nf
-            else
-              nff := nf;
             // sum nff values
             nff_sum := nff_sum + nff;
             count := count + 1;
           end;
         end;
-    end
+      end
       else
       begin
         Temps := StrToFloat(ss[0]);
@@ -461,8 +498,12 @@ begin
       end;
       // Graph nf for entire file
       if GraphCheckBox.Checked then
+      begin
         Series3.AddXY(Temps, nf);
-      if LineCount mod 1000 =0 then ProgressBar1.Position := Round(Temps / StopTime * 100.0);
+        Series6.AddXY(Temps, para_nz);
+      end;
+      if LineCount mod 1000 = 0 then
+        ProgressBar1.Position := Round(Temps / StopTime * 100.0);
     end;
     // compute average low resolution nq
     nq_avg := trunc((nff_sum / count - LowG) / QuantumRough);
@@ -472,7 +513,7 @@ begin
 
     Sleep(1000);
     ProgressBar1.Position := 0;
-    LineCount:=0;
+    LineCount := 0;
     // reset file to begining
     Reset(InputFile);
     // Read the file first two lines
@@ -490,7 +531,7 @@ begin
     While Not EoF(InputFile) and (Temps >= StartTime) and (Temps <= StopTime) do
     begin
       Readln(InputFile, Line);
-      inc(LineCount);
+      Inc(LineCount);
       ss.CommaText := Line;
       i := ss.count;
       if RadioGroup1.ItemIndex = 2 then

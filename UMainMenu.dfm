@@ -2,8 +2,8 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'Determination of load spectra'
-  ClientHeight = 781
-  ClientWidth = 1359
+  ClientHeight = 782
+  ClientWidth = 1363
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -15,14 +15,13 @@ object MainForm: TMainForm
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 1359
+    Width = 1363
     Height = 49
     Align = alTop
     TabOrder = 0
     VerticalAlignment = taAlignTop
-    ExplicitWidth = 1355
     DesignSize = (
-      1359
+      1363
       49)
     object Label1: TLabel
       Left = 744
@@ -72,36 +71,24 @@ object MainForm: TMainForm
       Text = '8000'
     end
     object RunButton: TButton
-      Left = 1316
-      Top = 25
+      Left = 1320
+      Top = 10
       Width = 35
       Height = 20
       Anchors = [akTop, akRight]
       Caption = 'Run'
       TabOrder = 3
       OnClick = RunButtonClick
-      ExplicitLeft = 1312
-    end
-    object ConfButton: TButton
-      Left = 1316
-      Top = 2
-      Width = 35
-      Height = 20
-      Anchors = [akTop, akRight]
-      Caption = 'Conf'
-      TabOrder = 4
-      OnClick = ConfButtonClick
-      ExplicitLeft = 1312
     end
     object ProgressBar1: TProgressBar
       Left = 526
       Top = 26
       Width = 191
       Height = 17
-      TabOrder = 5
+      TabOrder = 4
     end
     object RadioGroup1: TRadioGroup
-      Left = 1032
+      Left = 1036
       Top = 0
       Width = 278
       Height = 30
@@ -124,35 +111,40 @@ object MainForm: TMainForm
         'TextFile'
         'XCVarioFile')
       ShowFrame = False
-      TabOrder = 6
-      ExplicitLeft = 1028
+      TabOrder = 5
     end
     object GraphCheckBox: TCheckBox
       Left = 526
       Top = 3
       Width = 97
       Height = 17
-      Caption = 'GraphCheckBox'
+      Caption = 'Graph'
+      TabOrder = 6
+    end
+    object ParalaxeCheckBox: TCheckBox
+      Left = 641
+      Top = 3
+      Width = 97
+      Height = 17
+      Caption = 'Paralaxe'
       TabOrder = 7
     end
   end
   object PageControl1: TPageControl
     Left = 0
     Top = 49
-    Width = 1359
-    Height = 732
+    Width = 1363
+    Height = 733
     ActivePage = GraphTabSheet
     Align = alClient
     TabOrder = 1
-    ExplicitWidth = 1355
-    ExplicitHeight = 731
     object DataTabSheet: TTabSheet
       Caption = 'Data'
       object Memo2: TMemo
         Left = 274
         Top = 0
         Width = 144
-        Height = 702
+        Height = 703
         Align = alLeft
         Lines.Strings = (
           'Resampled Data'
@@ -164,7 +156,7 @@ object MainForm: TMainForm
         Left = 137
         Top = 0
         Width = 137
-        Height = 702
+        Height = 703
         Align = alLeft
         Lines.Strings = (
           'Sampled Data'
@@ -176,7 +168,7 @@ object MainForm: TMainForm
         Left = 0
         Top = 0
         Width = 137
-        Height = 702
+        Height = 703
         Align = alLeft
         Lines.Strings = (
           'Raw Data'
@@ -188,7 +180,7 @@ object MainForm: TMainForm
         Left = 418
         Top = 0
         Width = 167
-        Height = 702
+        Height = 703
         Align = alLeft
         Lines.Strings = (
           'Kossira')
@@ -201,8 +193,8 @@ object MainForm: TMainForm
       object Chart1: TChart
         Left = 0
         Top = 0
-        Width = 1351
-        Height = 702
+        Width = 1355
+        Height = 703
         Legend.Alignment = laBottom
         Title.Text.Strings = (
           'Load factor')
@@ -216,8 +208,6 @@ object MainForm: TMainForm
         View3D = False
         Align = alClient
         TabOrder = 0
-        ExplicitWidth = 1347
-        ExplicitHeight = 701
         DefaultCanvas = ''
         ColorPaletteIndex = 13
         object Series3: TFastLineSeries
@@ -226,6 +216,19 @@ object MainForm: TMainForm
           Title = 'RawData'
           FastPen = True
           LinePen.Color = -1
+          LinePen.EndStyle = esRound
+          TreatNulls = tnDontPaint
+          XValues.Name = 'X'
+          XValues.Order = loNone
+          YValues.Name = 'Y'
+          YValues.Order = loNone
+        end
+        object Series6: TFastLineSeries
+          HoverElement = []
+          SeriesColor = 16744448
+          Title = 'Para'
+          FastPen = True
+          LinePen.Color = 16744448
           LinePen.EndStyle = esRound
           TreatNulls = tnDontPaint
           XValues.Name = 'X'
@@ -309,7 +312,6 @@ object MainForm: TMainForm
         ParentCtl3D = False
         TabOrder = 0
         OnDrawCell = MarcovStringGrid2DrawCell
-        ExplicitHeight = 701
       end
       object spectrumStringGrid: TStringGrid
         Left = 1230
@@ -324,8 +326,6 @@ object MainForm: TMainForm
         FixedColor = clMoneyGreen
         RowCount = 33
         TabOrder = 1
-        ExplicitLeft = 1226
-        ExplicitHeight = 701
       end
     end
     object SpectraTabSheet: TTabSheet
@@ -435,6 +435,10 @@ object MainForm: TMainForm
       object Run3: TMenuItem
         Caption = 'Configuration'
         OnClick = Run3Click
+      end
+      object FiltrageAB1: TMenuItem
+        Caption = 'Filtrage_AB'
+        OnClick = FiltrageAB1Click
       end
     end
     object Help1: TMenuItem

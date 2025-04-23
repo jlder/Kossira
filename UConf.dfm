@@ -3,7 +3,7 @@ object ConfForm: TConfForm
   Top = 0
   Caption = 'Configuration'
   ClientHeight = 163
-  ClientWidth = 612
+  ClientWidth = 638
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -14,13 +14,13 @@ object ConfForm: TConfForm
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 612
+    Width = 638
     Height = 81
     Align = alTop
     Caption = 'Discretization'
     TabOrder = 0
     VerticalAlignment = taAlignTop
-    ExplicitWidth = 620
+    ExplicitWidth = 634
     object Label1: TLabel
       Left = 432
       Top = 24
@@ -92,13 +92,13 @@ object ConfForm: TConfForm
   object Panel2: TPanel
     Left = 0
     Top = 81
-    Width = 612
+    Width = 638
     Height = 72
     Align = alTop
     Caption = 'Filtering'
     TabOrder = 1
     VerticalAlignment = taAlignTop
-    ExplicitWidth = 620
+    ExplicitWidth = 634
     object FrstLabeledEdit: TLabeledEdit
       Left = 16
       Top = 33
@@ -123,12 +123,36 @@ object ConfForm: TConfForm
       Text = '0.025'
     end
     object ShowDataCheckBox: TCheckBox
-      Left = 264
+      Left = 515
       Top = 32
       Width = 97
       Height = 17
       Caption = 'Show data'
       TabOrder = 2
+    end
+    object DistCdGxLabeledEdit: TLabeledEdit
+      Left = 224
+      Top = 33
+      Width = 73
+      Height = 23
+      EditLabel.Width = 49
+      EditLabel.Height = 15
+      EditLabel.Cursor = crAppStart
+      EditLabel.Caption = 'DistxCdG'
+      TabOrder = 3
+      Text = '0.1'
+    end
+    object DistCdGzLabeledEdit: TLabeledEdit
+      Left = 328
+      Top = 33
+      Width = 73
+      Height = 23
+      EditLabel.Width = 48
+      EditLabel.Height = 15
+      EditLabel.Cursor = crAppStart
+      EditLabel.Caption = 'DistzCdG'
+      TabOrder = 4
+      Text = '1.0'
     end
   end
 end
