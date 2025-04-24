@@ -246,16 +246,7 @@ Var
 
   Procedure Exploite_data;
   begin
-    // filter data to remove noise
-    if fc > 0 then
-      Filter.ProcessData(deltaT, nf, nff) // nff corresponds to filtered load factor nf
-    else
-      nff := nf;
-    if nff < LowG then
-      nff := LowG;
-    if nff > HighG then
-      nff := HighG;
-    if ConfForm.ShowDataCheckBox.Checked then
+      if ConfForm.ShowDataCheckBox.Checked then
       Memo4.Lines.Add(Format('%5.3f' + #9 + '%8.2f', [Temps, nf]));
     // high resolution quantification
     n := trunc((nff - LowG) / Quantum); // n load factor coded on 10 bits
@@ -470,7 +461,7 @@ begin
           dgy_dt := gy_AB.ABprim;
           para_nz := -DistCdGz * gy * gy + DistCdGx * dgy_dt;
           if ParalaxeCheckBox.Checked then
-            nf := nf + para_nz;
+            nff := nff + para_nz;
           if (Temps >= StartTime) and (Temps <= StopTime) then
           begin
             // sum nff values
@@ -510,7 +501,8 @@ begin
     Label1.Caption := Format('nq_avg = %8d', [nq_avg]);
     LigneAGrossir := nq_avg;
     Application.ProcessMessages;
-
+    series3.Clear;
+    series6.Clear;
     Sleep(1000);
     ProgressBar1.Position := 0;
     LineCount := 0;
@@ -540,7 +532,20 @@ begin
         begin
           Temps := StrToFloat(ss[2]) / 1000.0;
           nf := -StrToFloat(ss[5]) / 10000.0 / 9.807;
-          if (nf >= LowG) and (nf <= HighG) then
+          gy := StrToFloat(ss[7]) / 100000.0;
+          az_AB.ABupdate(deltaT, nf);
+          gy_AB.ABupdate(deltaT, gy);
+          // apply accel & gyro filters
+          nff := az_AB.ABfilt;
+          gy := gy_AB.ABfilt;
+          if Not IsFifoEmpty(Fifo) then Dequeue(Fifo,gy_old) else gy_old:=gy;
+          Enqueue(Fifo,gy);
+          gy:=gy_old;
+          dgy_dt := gy_AB.ABprim;
+          para_nz := -DistCdGz * gy * gy + DistCdGx * dgy_dt;
+          if ParalaxeCheckBox.Checked then
+            nff := nff - para_nz;
+          if (nff >= LowG) and (nff <= HighG) then
             Exploite_data;
         end;
       end
@@ -553,6 +558,11 @@ begin
       end;
       if Debut = 0 then
         Debut := Temps;
+      if GraphCheckBox.Checked then
+      begin
+        Series3.AddXY(Temps, nff);
+        Series6.AddXY(Temps, para_nz);
+      end;
     end;
   end;
   if EoF(InputFile) then

@@ -140,10 +140,10 @@ object ConfForm: TConfForm
       EditLabel.Cursor = crAppStart
       EditLabel.Caption = 'DistxCdG'
       TabOrder = 3
-      Text = '0.1'
+      Text = '1.4'
     end
     object DistCdGzLabeledEdit: TLabeledEdit
-      Left = 328
+      Left = 320
       Top = 33
       Width = 73
       Height = 23
@@ -152,7 +152,7 @@ object ConfForm: TConfForm
       EditLabel.Cursor = crAppStart
       EditLabel.Caption = 'DistzCdG'
       TabOrder = 4
-      Text = '1.0'
+      Text = '0'
     end
   end
 end
