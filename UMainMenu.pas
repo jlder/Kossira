@@ -86,6 +86,7 @@ type
 const
   APP_COPYRIGHT = '© 2025 GFM & JLD. Copyright. Tous droits réservés.';
   APP_VERSION = 'Version 1.0.0.0';
+  Gravity = 9.807;
 
 var
   MainForm: TMainForm;
@@ -99,7 +100,7 @@ implementation
 {$R *.dfm}
 
 // {$R InfoVersion.res}
-uses UConf, UDoc, FilterButterworth, UAPropos, UFiltrages_AB,UFifoSingle;
+uses UConf, UDoc, FilterButterworth, UAPropos, UFiltrages_AB, UFifoSingle;
 
 Const // [col,ligne]
   Markov1_test: Array [0 .. 5, 0 .. 5] of Integer = (
@@ -126,7 +127,7 @@ end;
 
 procedure TMainForm.FiltrageAB1Click(Sender: TObject);
 begin
-Form3.Show;
+  Form3.Show;
 end;
 
 procedure TMainForm.Help2Click(Sender: TObject);
@@ -237,16 +238,17 @@ Var
   spectrum: Array [0 .. 31] of Integer;
   Markov1, Markov2: Array [0 .. 31, 0 .. 31] of Integer;
   Debut, Fin: Extended;
-  gy, gy_old,dgy_dt, para_nz: Extended;
+  gx, gz, gy, gy_old, dgy_dt, para_nz, gy_raw: Extended;
   gx_AB, gy_AB, gz_AB: TAlphaBeta;
   ax_AB, ay_AB, az_AB: TAlphaBeta;
   NAccel, NGyro: Integer;
   AccelOutlier, AccelMin, AccelMax, GyroOutlier, GyroMin, GyroMax: Extended;
   Fifo: TFifo;
+  Theta, ThetaDot, ThetaDotDot, Ax: Extended;
 
   Procedure Exploite_data;
   begin
-      if ConfForm.ShowDataCheckBox.Checked then
+    if ConfForm.ShowDataCheckBox.Checked then
       Memo4.Lines.Add(Format('%5.3f' + #9 + '%8.2f', [Temps, nf]));
     // high resolution quantification
     n := trunc((nff - LowG) / Quantum); // n load factor coded on 10 bits
@@ -310,6 +312,7 @@ begin
   Series6.Clear;
   // Lecture du fichier de données
   FileName := FileNameLabeledEdit.Text;
+  if RadioGroup1.ItemIndex = 3 then FileName:='D:\Data\Jean_Luc_Derouineau\AESA\Win32\Debug\serial_20230613_103232.txt';
   if FileExists(FileName) then
   begin
     AssignFile(InputFile, FileName);
@@ -405,8 +408,18 @@ begin
   Fin := 0.0;
   Debut := 0.0;
   Chart1.Axes.Left.Automatic := False;
-  Chart1.Axes.Left.Maximum := HighG;
-  Chart1.Axes.Left.Minimum := LowG;
+  if RadioGroup1.ItemIndex = 3 then
+  begin
+    Chart1.Axes.Left.Maximum := HighG / 5.0;
+    Chart1.Axes.Left.Minimum := LowG / 5.0;
+    Series3.Title := 'Az_Raw';
+    Series6.Title := 'Gy';
+  end
+  else
+  begin
+    Chart1.Axes.Left.Maximum := HighG;
+    Chart1.Axes.Left.Minimum := LowG / 5.0
+  end;
   NAccel := StrToInt(Form3.NAccelLabeledEdit.Text);
   NGyro := StrToInt(Form3.NGyroLabeledEdit.Text);
   AccelOutlier := StrToFloat(Form3.OutlierLabeledEdit.Text);
@@ -417,8 +430,10 @@ begin
   GyroMax := StrToFloat(Form3.GMaxLabeledEdit.Text);
   gy_AB := TAlphaBeta.Create(NGyro, deltaT, GyroOutlier, GyroMin, GyroMax);
   az_AB := TAlphaBeta.Create(NAccel, deltaT, AccelOutlier, AccelMin, AccelMax);
-  InitFifo(Fifo);
-
+  FIFO_DEPTH := StrToInt(ConfForm.FifoDepthLabeledEdit.Text);
+  InitFifo(FIFO_DEPTH, Fifo);
+  Theta := 22.0 * pi / 180.0;
+  ThetaDot := 0.0;
   // Compute nq_avg
   if RadioGroup1.ItemIndex = 0 then
   begin
@@ -443,23 +458,31 @@ begin
       i := ss.count;
       if (Temps <= StartTime) then
         Inc(LinePosition); // Mémorisation du nombre de lignes où Temps=Startime
-      if RadioGroup1.ItemIndex = 2 then
+      if RadioGroup1.ItemIndex >= 2 then
       begin
         if (Pos('$I', Line) > 0) and (Pos('$S', Line) = 0) and ((i = 9) or (i = 10)) and (Line.CountChar('$') = 1) then
         begin
           Temps := StrToFloat(ss[2]) / 1000.0;
-          nf := -StrToFloat(ss[5]) / 10000.0 / 9.807;
+          nf := -StrToFloat(ss[5]) / 10000.0 / Gravity;
+          gx := StrToFloat(ss[6]) / 100000.0;
           gy := StrToFloat(ss[7]) / 100000.0;
+          gz := StrToFloat(ss[8]) / 100000.0;
           az_AB.ABupdate(deltaT, nf);
           gy_AB.ABupdate(deltaT, gy);
           // apply accel & gyro filters
           nff := az_AB.ABfilt;
           gy := gy_AB.ABfilt;
-          if Not IsFifoEmpty(Fifo) then Dequeue(Fifo,gy_old) else gy_old:=gy;
-          Enqueue(Fifo,gy);
-          gy:=gy_old;
+          if Not IsFifoEmpty(Fifo) then
+            Dequeue(Fifo, gy_old)
+          else
+            gy_old := gy;
+          Enqueue(Fifo, gy);
+          gy := gy_old;
           dgy_dt := gy_AB.ABprim;
-          para_nz := -DistCdGz * gy * gy + DistCdGx * dgy_dt;
+          // azb := azb - (gx * gx + gy * gy) * bras_levier_z + qprim * bras_levier_x - pprim * bras_levier_y;
+          // Result.AccZ := l * thetaDotDot * Sin(theta) + l * Sqr(thetaDot) * Cos(theta) - g * Cos(theta);
+          para_nz := -DistCdGz * (gx * gx + gy * gy) + DistCdGx * dgy_dt;
+          para_nz := para_nz / Gravity;
           if ParalaxeCheckBox.Checked then
             nff := nff + para_nz;
           if (Temps >= StartTime) and (Temps <= StopTime) then
@@ -491,19 +514,26 @@ begin
       if GraphCheckBox.Checked then
       begin
         Series3.AddXY(Temps, nf);
-        Series6.AddXY(Temps, para_nz);
+        Series6.AddXY(Temps, gy);
       end;
       if LineCount mod 1000 = 0 then
         ProgressBar1.Position := Round(Temps / StopTime * 100.0);
     end;
     // compute average low resolution nq
-    nq_avg := trunc((nff_sum / count - LowG) / QuantumRough);
+    if count>0 then nq_avg := trunc((nff_sum / count - LowG) / QuantumRough) else
+      begin
+      Application.MessageBox('Aucune mesure entre Start and Stop','ATTENTION',IdOk);
+      Exit;
+      end;
     Label1.Caption := Format('nq_avg = %8d', [nq_avg]);
     LigneAGrossir := nq_avg;
+    gy_AB.Free;
+    az_AB.Free;
     Application.ProcessMessages;
-    series3.Clear;
-    series6.Clear;
-    Sleep(1000);
+    if RadioGroup1.ItemIndex = 3 then
+      Series3.Clear;
+    // Series6.Clear;
+    Sleep(3000);
     ProgressBar1.Position := 0;
     LineCount := 0;
     // reset file to begining
@@ -513,6 +543,8 @@ begin
     Readln(InputFile, Line);
     // skip records until start time is reached
     Temps := StartTime;
+    gy_AB := TAlphaBeta.Create(NGyro, deltaT, GyroOutlier, GyroMin, GyroMax);
+    az_AB := TAlphaBeta.Create(NAccel, deltaT, AccelOutlier, AccelMin, AccelMax);
     i := 0;
     // skip records until start time is reached
     Repeat
@@ -526,27 +558,60 @@ begin
       Inc(LineCount);
       ss.CommaText := Line;
       i := ss.count;
-      if RadioGroup1.ItemIndex = 2 then
+      if RadioGroup1.ItemIndex >= 2 then
       begin
         if (Pos('$I', Line) > 0) and (Pos('$S', Line) = 0) and ((i = 9) or (i = 10)) and (Line.CountChar('$') = 1) then
         begin
           Temps := StrToFloat(ss[2]) / 1000.0;
-          nf := -StrToFloat(ss[5]) / 10000.0 / 9.807;
-          gy := StrToFloat(ss[7]) / 100000.0;
+          Ax := -(StrToFloat(ss[3]) / 10000.0 - 0.5) / Gravity;
+          nf := -(StrToFloat(ss[5]) / 10000.0 - 0.04) / Gravity;
+          gx := StrToFloat(ss[6]) / 100000.0;
+          gy_raw := StrToFloat(ss[7]) / 100000.0;
+          gz := StrToFloat(ss[8]) / 100000.0;
           az_AB.ABupdate(deltaT, nf);
-          gy_AB.ABupdate(deltaT, gy);
+          gy_AB.ABupdate(deltaT, gy_raw);
           // apply accel & gyro filters
           nff := az_AB.ABfilt;
           gy := gy_AB.ABfilt;
-          if Not IsFifoEmpty(Fifo) then Dequeue(Fifo,gy_old) else gy_old:=gy;
-          Enqueue(Fifo,gy);
-          gy:=gy_old;
+          if Not IsFifoEmpty(Fifo) then
+            Dequeue(Fifo, gy_old)
+          else
+            gy_old := gy;
+          Enqueue(Fifo, gy);
+          gy := gy_old;
           dgy_dt := gy_AB.ABprim;
-          para_nz := -DistCdGz * gy * gy + DistCdGx * dgy_dt;
+          // azb := azb - (gx * gx + gy * gy) * bras_levier_z + qprim * bras_levier_x - pprim * bras_levier_y;
+          para_nz := -DistCdGz * (gx * gx + gy * gy) - DistCdGx * dgy_dt;
+          para_nz := para_nz / Gravity;
           if ParalaxeCheckBox.Checked then
-            nff := nff - para_nz;
+            nff := nff + para_nz;
           if (nff >= LowG) and (nff <= HighG) then
             Exploite_data;
+          if RadioGroup1.ItemIndex = 3 then
+          begin
+            if Temps > 333.8 then
+            begin
+              ThetaDotDot := -0.083 * ThetaDot * abs(ThetaDot) - Gravity / DistCdGz * sin(Theta);
+              ThetaDot := ThetaDot + ThetaDotDot * deltaT;
+              Theta := Theta + ThetaDot * deltaT;
+            end;
+            if GraphCheckBox.Checked then
+            begin
+              // Series3.AddXY(Temps, nff - cos(Theta));
+              Series3.AddXY(Temps, sqrt(sqr(nff) + sqr(Ax - DistCdGz * ThetaDotDot / Gravity)));
+              Series6.AddXY(Temps, ThetaDot);
+              Series3.Title := '1';
+              Series6.Title := 'Gy_Théorique';
+            end;
+          end
+          else
+          begin
+            if GraphCheckBox.Checked then
+            begin
+              Series3.AddXY(Temps, nff);
+              Series6.AddXY(Temps, gy);
+            end;
+          end;
         end;
       end
       else
@@ -558,11 +623,6 @@ begin
       end;
       if Debut = 0 then
         Debut := Temps;
-      if GraphCheckBox.Checked then
-      begin
-        Series3.AddXY(Temps, nff);
-        Series6.AddXY(Temps, para_nz);
-      end;
     end;
   end;
   if EoF(InputFile) then

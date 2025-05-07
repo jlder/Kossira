@@ -13,10 +13,10 @@ Type
     Tail: Integer; // Ne pas utiliser le nom de variable end en Pascal;)
   end;
 
-Const
-  FIFO_DEPTH = 10;
+VAr
+  FIFO_DEPTH :Integer;
 
-procedure InitFifo(var Fifo: TFifo);
+procedure InitFifo(FIFO_DEPTH:Integer;var Fifo: TFifo);
 function IsFifoFull(const Fifo: TFifo; FIFO_DEPTH: Integer): Boolean;
 function IsFifoEmpty(const Fifo: TFifo): Boolean;
 procedure Enqueue(var Fifo: TFifo; const NewPoint: Extended);
@@ -24,7 +24,7 @@ procedure Dequeue(var Fifo: TFifo; VAr OldPoint: Extended);
 
 implementation
 
-procedure InitFifo(var Fifo: TFifo);
+procedure InitFifo(FIFO_DEPTH:Integer;var Fifo: TFifo);
 Var
   i: Integer;
 begin

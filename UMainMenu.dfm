@@ -20,6 +20,7 @@ object MainForm: TMainForm
     Align = alTop
     TabOrder = 0
     VerticalAlignment = taAlignTop
+    ExplicitWidth = 1359
     DesignSize = (
       1363
       49)
@@ -46,7 +47,7 @@ object MainForm: TMainForm
       EditLabel.Height = 15
       EditLabel.Caption = 'FileName'
       TabOrder = 0
-      Text = 'Res_XCVarioJL_FT13_FT13_29_V3_20241201_vol_avant_test.txt'
+      Text = 'serial_20230613_103232.txt'
     end
     object StartLabeledEdit: TLabeledEdit
       Left = 384
@@ -57,7 +58,7 @@ object MainForm: TMainForm
       EditLabel.Height = 15
       EditLabel.Caption = 'StartTime'
       TabOrder = 1
-      Text = '2000'
+      Text = '297.5'
     end
     object StopLabeledEdit: TLabeledEdit
       Left = 455
@@ -79,6 +80,7 @@ object MainForm: TMainForm
       Caption = 'Run'
       TabOrder = 3
       OnClick = RunButtonClick
+      ExplicitLeft = 1316
     end
     object ProgressBar1: TProgressBar
       Left = 526
@@ -88,15 +90,15 @@ object MainForm: TMainForm
       TabOrder = 4
     end
     object RadioGroup1: TRadioGroup
-      Left = 1036
-      Top = 0
+      Left = 972
+      Top = 10
       Width = 278
       Height = 30
       Margins.Top = 0
       Margins.Bottom = 0
       Anchors = [akTop, akRight]
       Caption = 'Test or Real'
-      Columns = 3
+      Columns = 4
       DefaultHeaderFont = False
       HeaderFont.Charset = DEFAULT_CHARSET
       HeaderFont.Color = clWindowText
@@ -105,13 +107,16 @@ object MainForm: TMainForm
       HeaderFont.Pitch = fpFixed
       HeaderFont.Style = []
       HeaderFont.Quality = fqDraft
-      ItemIndex = 0
+      ItemIndex = 3
       Items.Strings = (
         'Test1'
         'TextFile'
-        'XCVarioFile')
+        'XCVarioFile'
+        'Pendule')
       ShowFrame = False
       TabOrder = 5
+      StyleName = 'Windows'
+      ExplicitLeft = 968
     end
     object GraphCheckBox: TCheckBox
       Left = 526
@@ -119,6 +124,8 @@ object MainForm: TMainForm
       Width = 97
       Height = 17
       Caption = 'Graph'
+      Checked = True
+      State = cbChecked
       TabOrder = 6
     end
     object ParalaxeCheckBox: TCheckBox
@@ -127,6 +134,8 @@ object MainForm: TMainForm
       Width = 97
       Height = 17
       Caption = 'Paralaxe'
+      Checked = True
+      State = cbChecked
       TabOrder = 7
     end
   end
@@ -138,6 +147,8 @@ object MainForm: TMainForm
     ActivePage = GraphTabSheet
     Align = alClient
     TabOrder = 1
+    ExplicitWidth = 1359
+    ExplicitHeight = 732
     object DataTabSheet: TTabSheet
       Caption = 'Data'
       object Memo2: TMemo
@@ -198,7 +209,6 @@ object MainForm: TMainForm
         Legend.Alignment = laBottom
         Title.Text.Strings = (
           'Load factor')
-        LeftAxis.Increment = 2.000000000000000000
         RightAxis.Automatic = False
         RightAxis.AutomaticMaximum = False
         RightAxis.AutomaticMinimum = False
@@ -208,6 +218,8 @@ object MainForm: TMainForm
         View3D = False
         Align = alClient
         TabOrder = 0
+        ExplicitWidth = 1351
+        ExplicitHeight = 702
         DefaultCanvas = ''
         ColorPaletteIndex = 13
         object Series3: TFastLineSeries
@@ -278,11 +290,11 @@ object MainForm: TMainForm
       object MarcovStringGrid1: TStringGrid
         Left = 0
         Top = 0
-        Width = 1041
-        Height = 702
+        Width = 1233
+        Height = 703
         Align = alLeft
         ColCount = 33
-        DefaultColWidth = 30
+        DefaultColWidth = 36
         DefaultRowHeight = 20
         DrawingStyle = gdsClassic
         FixedColor = clMoneyGreen
@@ -299,7 +311,7 @@ object MainForm: TMainForm
         Left = 0
         Top = 0
         Width = 1233
-        Height = 702
+        Height = 703
         Align = alLeft
         ColCount = 33
         Ctl3D = False
@@ -314,10 +326,10 @@ object MainForm: TMainForm
         OnDrawCell = MarcovStringGrid2DrawCell
       end
       object spectrumStringGrid: TStringGrid
-        Left = 1230
+        Left = 1234
         Top = 0
         Width = 121
-        Height = 702
+        Height = 703
         Align = alRight
         ColCount = 2
         DefaultColWidth = 63
@@ -334,8 +346,8 @@ object MainForm: TMainForm
       object Chart2: TChart
         Left = 0
         Top = 0
-        Width = 1351
-        Height = 702
+        Width = 1355
+        Height = 703
         Legend.Alignment = laBottom
         Legend.LegendStyle = lsSeries
         Title.Text.Strings = (

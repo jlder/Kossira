@@ -2,8 +2,8 @@ object Form3: TForm3
   Left = 0
   Top = 0
   Caption = ' Alpha/Beta filters'
-  ClientHeight = 132
-  ClientWidth = 360
+  ClientHeight = 129
+  ClientWidth = 348
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -14,14 +14,12 @@ object Form3: TForm3
   object Panel2: TPanel
     Left = 0
     Top = 0
-    Width = 360
-    Height = 132
+    Width = 348
+    Height = 129
     Align = alClient
     Caption = 'Filtrage constants'
     TabOrder = 0
     VerticalAlignment = taAlignTop
-    ExplicitWidth = 356
-    ExplicitHeight = 131
     object NAccelLabeledEdit: TLabeledEdit
       Left = 13
       Top = 39
@@ -34,7 +32,7 @@ object Form3: TForm3
       ParentShowHint = False
       ShowHint = True
       TabOrder = 0
-      Text = '5'
+      Text = '7'
     end
     object OutlierLabeledEdit: TLabeledEdit
       Left = 93
@@ -90,7 +88,7 @@ object Form3: TForm3
       ParentShowHint = False
       ShowHint = True
       TabOrder = 4
-      Text = '5'
+      Text = '7'
     end
     object GOutlierLabeledEdit: TLabeledEdit
       Left = 93

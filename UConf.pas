@@ -22,6 +22,7 @@ type
     ShowDataCheckBox: TCheckBox;
     DistCdGxLabeledEdit: TLabeledEdit;
     DistCdGzLabeledEdit: TLabeledEdit;
+    FifoDepthLabeledEdit: TLabeledEdit;
     procedure ValidationButtonClick(Sender: TObject);
   private
     { Déclarations privées }
