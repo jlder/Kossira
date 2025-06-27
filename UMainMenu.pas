@@ -277,7 +277,7 @@ Var
 
           // Display results
           // Display n and nq for min/max
-          Series1.AddXY(Temps, n * UnderSample div ClassNumbers);
+          //Series1.AddXY(Temps, n * UnderSample div ClassNumbers);
           Series2.AddXY(Temps, nq);
 
           // keep track of last minmax
@@ -456,7 +456,7 @@ begin
       Inc(LineCount);
       ss.CommaText := Line;
       i := ss.count;
-      if (Temps <= StartTime) then
+      if (Temps >= StartTime) then
         Inc(LinePosition); // Mémorisation du nombre de lignes où Temps=Startime
       if RadioGroup1.ItemIndex >= 2 then
       begin
@@ -551,7 +551,9 @@ begin
       Inc(i);
       Readln(InputFile, Line);
     until (i >= LinePosition) or EoF(InputFile);
-
+    Reset(InputFile);
+    ReadLn(InputFile);
+    ReadLn(InputFile);
     While Not EoF(InputFile) and (Temps >= StartTime) and (Temps <= StopTime) do
     begin
       Readln(InputFile, Line);
@@ -617,9 +619,12 @@ begin
       else
       begin
         Temps := StrToFloat(ss[0]);
-        nf := -StrToFloat(ss[1]);
-        if (nf >= LowG) and (nf <= HighG) then
+        nff := -StrToFloat(ss[1]);
+        if (nff >= LowG) and (nff <= HighG) then
+          begin
+          Series1.Addxy(Temps,nff);
           Exploite_data;
+          end;
       end;
       if Debut = 0 then
         Debut := Temps;

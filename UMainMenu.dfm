@@ -20,7 +20,6 @@ object MainForm: TMainForm
     Align = alTop
     TabOrder = 0
     VerticalAlignment = taAlignTop
-    ExplicitWidth = 1359
     DesignSize = (
       1363
       49)
@@ -80,7 +79,6 @@ object MainForm: TMainForm
       Caption = 'Run'
       TabOrder = 3
       OnClick = RunButtonClick
-      ExplicitLeft = 1316
     end
     object ProgressBar1: TProgressBar
       Left = 526
@@ -116,7 +114,6 @@ object MainForm: TMainForm
       ShowFrame = False
       TabOrder = 5
       StyleName = 'Windows'
-      ExplicitLeft = 968
     end
     object GraphCheckBox: TCheckBox
       Left = 526
@@ -147,8 +144,6 @@ object MainForm: TMainForm
     ActivePage = GraphTabSheet
     Align = alClient
     TabOrder = 1
-    ExplicitWidth = 1359
-    ExplicitHeight = 732
     object DataTabSheet: TTabSheet
       Caption = 'Data'
       object Memo2: TMemo
@@ -218,12 +213,9 @@ object MainForm: TMainForm
         View3D = False
         Align = alClient
         TabOrder = 0
-        ExplicitWidth = 1351
-        ExplicitHeight = 702
         DefaultCanvas = ''
         ColorPaletteIndex = 13
         object Series3: TFastLineSeries
-          HoverElement = []
           SeriesColor = -1
           Title = 'RawData'
           FastPen = True
@@ -236,7 +228,6 @@ object MainForm: TMainForm
           YValues.Order = loNone
         end
         object Series6: TFastLineSeries
-          HoverElement = []
           SeriesColor = 16744448
           Title = 'Para'
           FastPen = True
@@ -249,7 +240,6 @@ object MainForm: TMainForm
           YValues.Order = loNone
         end
         object Series1: TPointSeries
-          HoverElement = [heCurrent]
           Marks.Callout.Length = 8
           SeriesColor = 16744448
           Title = 'n'
@@ -266,7 +256,6 @@ object MainForm: TMainForm
           YValues.Order = loNone
         end
         object Series2: TPointSeries
-          HoverElement = [heCurrent]
           Marks.Callout.Length = 8
           SeriesColor = clRed
           Title = 'nq'
@@ -367,7 +356,6 @@ object MainForm: TMainForm
         DefaultCanvas = ''
         ColorPaletteIndex = 13
         object Series4: TLineSeries
-          HoverElement = [heCurrent]
           Title = 'spectra KOSSIRA ICAS-82-2.8.2.pdf'
           Brush.BackColor = clDefault
           Pointer.InflateMargins = True
@@ -378,7 +366,6 @@ object MainForm: TMainForm
           YValues.Order = loNone
         end
         object Series5: TLineSeries
-          HoverElement = [heCurrent]
           SeriesColor = clRed
           Shadow.Visible = False
           Title = 'FileName'
