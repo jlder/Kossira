@@ -64,6 +64,7 @@ type
     ParalaxeCheckBox: TCheckBox;
     FiltrageAB1: TMenuItem;
     RepereRadioGroup: TRadioGroup;
+    Batch1: TMenuItem;
     procedure RunButtonClick(Sender: TObject);
     procedure ConfButtonClick(Sender: TObject);
     procedure Open1Click(Sender: TObject);
@@ -81,6 +82,7 @@ type
       Rect: TRect; State: TGridDrawState);
     procedure PrintSpectra1Click(Sender: TObject);
     procedure FiltrageAB1Click(Sender: TObject);
+    procedure Batch1Click(Sender: TObject);
   private
     { Déclarations privées }
     LigneAGrossir: Integer;
@@ -125,7 +127,7 @@ implementation
 {$R *.dfm}
 
 // {$R InfoVersion.res}
-uses UConf, UDoc, FilterButterworth, UAPropos, UFiltrages_AB, UFifoSingle;
+uses UConf, UDoc, FilterButterworth, UAPropos, UFiltrages_AB, UFifoSingle,UBatch;
 
 Const // [col,ligne]
   Markov1_test: Array [0 .. 5, 0 .. 5] of Integer = (
@@ -147,6 +149,11 @@ Const // [col,ligne]
     90487.1326, 32844.8336, 9594.8, 5780.6417, 2367.2902, 140.6707, 5.1591)
     // col 1
     );
+
+procedure TMainForm.Batch1Click(Sender: TObject);
+begin
+BatchForm.Show;
+end;
 
 procedure TMainForm.ConfButtonClick(Sender: TObject);
 begin

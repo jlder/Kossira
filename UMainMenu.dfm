@@ -478,6 +478,10 @@ object MainForm: TMainForm
         Caption = 'Filtrage_AB'
         OnClick = FiltrageAB1Click
       end
+      object Batch1: TMenuItem
+        Caption = 'Batch'
+        OnClick = Batch1Click
+      end
     end
     object Help1: TMenuItem
       Caption = 'Help'

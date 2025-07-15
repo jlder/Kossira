@@ -1,7 +1,7 @@
-object Form1: TForm1
+object BatchForm: TBatchForm
   Left = 0
   Top = 0
-  Caption = 'Form1'
+  Caption = 'Batch'
   ClientHeight = 441
   ClientWidth = 624
   Color = clBtnFace
@@ -11,4 +11,68 @@ object Form1: TForm1
   Font.Name = 'Segoe UI'
   Font.Style = []
   TextHeight = 15
+  object Panel1: TPanel
+    Left = 0
+    Top = 0
+    Width = 624
+    Height = 257
+    Align = alTop
+    Caption = 'Panel1'
+    TabOrder = 0
+    object Label1: TLabel
+      Left = 24
+      Top = 19
+      Width = 54
+      Height = 15
+      Caption = 'Directory :'
+    end
+    object Label2: TLabel
+      Left = 216
+      Top = 19
+      Width = 47
+      Height = 15
+      Caption = 'Files list :'
+    end
+    object OverLabel: TLabel
+      Left = 216
+      Top = 163
+      Width = 81
+      Height = 45
+      Caption = 'Over!'
+      Color = clGreen
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clGreen
+      Font.Height = -32
+      Font.Name = 'Segoe UI'
+      Font.Style = [fsBold]
+      ParentColor = False
+      ParentFont = False
+      Visible = False
+    end
+    object DirectoryListBox1: TDirectoryListBox
+      Left = 24
+      Top = 40
+      Width = 145
+      Height = 97
+      TabOrder = 0
+      OnChange = DirectoryListBox1Change
+    end
+    object ListBoxFiles: TListBox
+      Left = 216
+      Top = 40
+      Width = 385
+      Height = 97
+      ItemHeight = 15
+      TabOrder = 1
+    end
+    object RunButton: TButton
+      Left = 464
+      Top = 9
+      Width = 137
+      Height = 25
+      Caption = 'Run batch and wait'
+      TabOrder = 2
+      OnClick = RunButtonClick
+    end
+  end
 end
