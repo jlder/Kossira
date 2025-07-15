@@ -32,7 +32,7 @@ object Form3: TForm3
       ParentShowHint = False
       ShowHint = True
       TabOrder = 0
-      Text = '7'
+      Text = '40'
     end
     object OutlierLabeledEdit: TLabeledEdit
       Left = 93

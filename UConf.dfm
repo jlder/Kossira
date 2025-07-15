@@ -118,7 +118,7 @@ object ConfForm: TConfForm
       EditLabel.Cursor = crAppStart
       EditLabel.Caption = 'Sample time'
       TabOrder = 1
-      Text = '0.025'
+      Text = '0.05'
     end
     object ShowDataCheckBox: TCheckBox
       Left = 544

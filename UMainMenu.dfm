@@ -2,8 +2,8 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'Determination of load spectra'
-  ClientHeight = 782
-  ClientWidth = 1363
+  ClientHeight = 521
+  ClientWidth = 1584
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -11,28 +11,29 @@ object MainForm: TMainForm
   Font.Name = 'Segoe UI'
   Font.Style = []
   Menu = MainMenu1
+  Position = poDesigned
   TextHeight = 15
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 1363
+    Width = 1584
     Height = 49
     Align = alTop
     TabOrder = 0
     VerticalAlignment = taAlignTop
     DesignSize = (
-      1363
+      1584
       49)
     object Label1: TLabel
       Left = 744
-      Top = 28
+      Top = 23
       Width = 38
       Height = 15
       Caption = 'nq_avg'
     end
     object RunningLabel: TLabel
-      Left = 880
-      Top = 28
+      Left = 840
+      Top = 23
       Width = 77
       Height = 15
       Caption = 'Waiting orders'
@@ -44,9 +45,13 @@ object MainForm: TMainForm
       Height = 23
       EditLabel.Width = 50
       EditLabel.Height = 15
+      EditLabel.Margins.Left = 6
+      EditLabel.Margins.Top = 6
+      EditLabel.Margins.Right = 6
+      EditLabel.Margins.Bottom = 6
       EditLabel.Caption = 'FileName'
       TabOrder = 0
-      Text = 'serial_20230613_103232.txt'
+      Text = 'binary.TXT'
     end
     object StartLabeledEdit: TLabeledEdit
       Left = 384
@@ -55,6 +60,10 @@ object MainForm: TMainForm
       Height = 23
       EditLabel.Width = 50
       EditLabel.Height = 15
+      EditLabel.Margins.Left = 6
+      EditLabel.Margins.Top = 6
+      EditLabel.Margins.Right = 6
+      EditLabel.Margins.Bottom = 6
       EditLabel.Caption = 'StartTime'
       TabOrder = 1
       Text = '297.5'
@@ -66,13 +75,17 @@ object MainForm: TMainForm
       Height = 23
       EditLabel.Width = 50
       EditLabel.Height = 15
+      EditLabel.Margins.Left = 6
+      EditLabel.Margins.Top = 6
+      EditLabel.Margins.Right = 6
+      EditLabel.Margins.Bottom = 6
       EditLabel.Caption = 'StopTime'
       TabOrder = 2
       Text = '8000'
     end
     object RunButton: TButton
-      Left = 1320
-      Top = 10
+      Left = 1532
+      Top = 5
       Width = 35
       Height = 20
       Anchors = [akTop, akRight]
@@ -88,8 +101,8 @@ object MainForm: TMainForm
       TabOrder = 4
     end
     object RadioGroup1: TRadioGroup
-      Left = 972
-      Top = 10
+      Left = 1180
+      Top = 6
       Width = 278
       Height = 30
       Margins.Top = 0
@@ -105,9 +118,9 @@ object MainForm: TMainForm
       HeaderFont.Pitch = fpFixed
       HeaderFont.Style = []
       HeaderFont.Quality = fqDraft
-      ItemIndex = 3
+      ItemIndex = 0
       Items.Strings = (
-        'Test1'
+        'Binaire'
         'TextFile'
         'XCVarioFile'
         'Pendule')
@@ -135,12 +148,38 @@ object MainForm: TMainForm
       State = cbChecked
       TabOrder = 7
     end
+    object RepereRadioGroup: TRadioGroup
+      Left = 987
+      Top = 10
+      Width = 123
+      Height = 36
+      Margins.Top = 0
+      Margins.Bottom = 0
+      Anchors = [akTop, akRight]
+      Caption = 'NED or ENU'
+      Columns = 2
+      DefaultHeaderFont = False
+      HeaderFont.Charset = DEFAULT_CHARSET
+      HeaderFont.Color = clWindowText
+      HeaderFont.Height = 10
+      HeaderFont.Name = 'Arial'
+      HeaderFont.Pitch = fpFixed
+      HeaderFont.Style = []
+      HeaderFont.Quality = fqDraft
+      ItemIndex = 1
+      Items.Strings = (
+        'NED'
+        'ENU')
+      ShowFrame = False
+      TabOrder = 8
+      StyleName = 'Windows'
+    end
   end
   object PageControl1: TPageControl
     Left = 0
     Top = 49
-    Width = 1363
-    Height = 733
+    Width = 1584
+    Height = 472
     ActivePage = GraphTabSheet
     Align = alClient
     TabOrder = 1
@@ -150,7 +189,7 @@ object MainForm: TMainForm
         Left = 274
         Top = 0
         Width = 144
-        Height = 703
+        Height = 442
         Align = alLeft
         Lines.Strings = (
           'Resampled Data'
@@ -162,7 +201,7 @@ object MainForm: TMainForm
         Left = 137
         Top = 0
         Width = 137
-        Height = 703
+        Height = 442
         Align = alLeft
         Lines.Strings = (
           'Sampled Data'
@@ -174,7 +213,7 @@ object MainForm: TMainForm
         Left = 0
         Top = 0
         Width = 137
-        Height = 703
+        Height = 442
         Align = alLeft
         Lines.Strings = (
           'Raw Data'
@@ -186,7 +225,7 @@ object MainForm: TMainForm
         Left = 418
         Top = 0
         Width = 167
-        Height = 703
+        Height = 442
         Align = alLeft
         Lines.Strings = (
           'Kossira')
@@ -199,15 +238,15 @@ object MainForm: TMainForm
       object Chart1: TChart
         Left = 0
         Top = 0
-        Width = 1355
-        Height = 703
+        Width = 1576
+        Height = 442
         Legend.Alignment = laBottom
         Title.Text.Strings = (
           'Load factor')
         RightAxis.Automatic = False
         RightAxis.AutomaticMaximum = False
         RightAxis.AutomaticMinimum = False
-        RightAxis.Increment = 1.000000000000000000
+        RightAxis.Increment = 4.000000000000000000
         RightAxis.Maximum = 36.000000000000000000
         RightAxis.Minimum = -4.000000000000000000
         View3D = False
@@ -233,6 +272,7 @@ object MainForm: TMainForm
           FastPen = True
           LinePen.Color = 16744448
           LinePen.EndStyle = esRound
+          Stairs = True
           TreatNulls = tnDontPaint
           XValues.Name = 'X'
           XValues.Order = loNone
@@ -241,15 +281,14 @@ object MainForm: TMainForm
         end
         object Series1: TPointSeries
           Marks.Callout.Length = 8
-          SeriesColor = 16744448
+          SeriesColor = clGreen
           Title = 'n'
-          VertAxis = aRightAxis
           ClickableLine = False
-          Pointer.HorizSize = 2
+          Pointer.HorizSize = 1
           Pointer.InflateMargins = True
           Pointer.Pen.Visible = False
           Pointer.Style = psRectangle
-          Pointer.VertSize = 2
+          Pointer.VertSize = 1
           XValues.Name = 'X'
           XValues.Order = loNone
           YValues.Name = 'Y'
@@ -280,7 +319,7 @@ object MainForm: TMainForm
         Left = 0
         Top = 0
         Width = 1233
-        Height = 703
+        Height = 442
         Align = alLeft
         ColCount = 33
         DefaultColWidth = 36
@@ -300,7 +339,7 @@ object MainForm: TMainForm
         Left = 0
         Top = 0
         Width = 1233
-        Height = 703
+        Height = 442
         Align = alLeft
         ColCount = 33
         Ctl3D = False
@@ -315,10 +354,10 @@ object MainForm: TMainForm
         OnDrawCell = MarcovStringGrid2DrawCell
       end
       object spectrumStringGrid: TStringGrid
-        Left = 1234
+        Left = 1455
         Top = 0
         Width = 121
-        Height = 703
+        Height = 442
         Align = alRight
         ColCount = 2
         DefaultColWidth = 63
@@ -335,8 +374,8 @@ object MainForm: TMainForm
       object Chart2: TChart
         Left = 0
         Top = 0
-        Width = 1355
-        Height = 703
+        Width = 1576
+        Height = 442
         Legend.Alignment = laBottom
         Legend.LegendStyle = lsSeries
         Title.Text.Strings = (

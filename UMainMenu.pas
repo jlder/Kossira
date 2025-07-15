@@ -3,7 +3,8 @@ unit UMainMenu;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtDlgs, Vcl.StdCtrls, Vcl.Mask,
   Vcl.ExtCtrls, Vcl.ComCtrls, VCLTee.TeEngine, VCLTee.Series, VCLTee.TeeProcs,
   VCLTee.Chart, Vcl.Grids, Math, Vcl.Menus;
@@ -62,6 +63,7 @@ type
     Series6: TFastLineSeries;
     ParalaxeCheckBox: TCheckBox;
     FiltrageAB1: TMenuItem;
+    RepereRadioGroup: TRadioGroup;
     procedure RunButtonClick(Sender: TObject);
     procedure ConfButtonClick(Sender: TObject);
     procedure Open1Click(Sender: TObject);
@@ -73,14 +75,32 @@ type
     procedure SaveAs1Click(Sender: TObject);
     procedure Run2Click(Sender: TObject);
     procedure Run3Click(Sender: TObject);
-    procedure MarcovStringGrid2DrawCell(Sender: TObject; ACol, ARow: Integer; Rect: TRect; State: TGridDrawState);
-    procedure MarcovStringGrid1DrawCell(Sender: TObject; ACol, ARow: Integer; Rect: TRect; State: TGridDrawState);
+    procedure MarcovStringGrid2DrawCell(Sender: TObject; ACol, ARow: Integer;
+      Rect: TRect; State: TGridDrawState);
+    procedure MarcovStringGrid1DrawCell(Sender: TObject; ACol, ARow: Integer;
+      Rect: TRect; State: TGridDrawState);
     procedure PrintSpectra1Click(Sender: TObject);
     procedure FiltrageAB1Click(Sender: TObject);
   private
     { Déclarations privées }
-    LigneAGrossir: Integer; // Stocke le numéro de la ligne à renforcer  public
+    LigneAGrossir: Integer;
+    // Stocke le numéro de la ligne à renforcer  public
     { Déclarations publiques }
+  end;
+
+type
+  TTimeMessage = packed record
+    Header: array [0 .. 1] of Byte; // 0x55, 0x50
+    Year, Month, Day, Hour, Minute, Second: Byte;
+    MS_L, MS_H: Byte;
+    Checksum: Byte;
+  end;
+
+  TAccMessage = packed record
+    Header: array [0 .. 1] of Byte; // 0x55, 0x51
+    Ax_L, Ax_H, Ay_L, Ay_H, Az_L, Az_H: Byte;
+    Temp_L, Temp_H: Byte;
+    Checksum: Byte;
   end;
 
 const
@@ -92,8 +112,13 @@ var
   MainForm: TMainForm;
   FileName: String;
   InputFile: TextFile;
-  Temps, StartTime, StopTime: Extended;
+  Temps, StartTime, StopTime, Temps_Cumule, Temps_1: Extended;
   Classes, Occurs: Extended;
+  Repere: Integer; // 1 for ENU   , -1 for NED
+  BinaryFile: File;
+  TimeMsg: TTimeMessage;
+  AccMsg: TAccMessage;
+  EnVol: Boolean;
 
 implementation
 
@@ -114,10 +139,13 @@ Const // [col,ligne]
     );
   Kossira_6000h: Array [0 .. 1, 0 .. 19] of Single = (
     // ligne 0, 1, 2, 3, 4, 5, 6
-    (-2.5477, -2.2158, -1.7801, -1.4481, -1.0747, -0.7012, -0.3485, 0.0249, 0.3776, 0.751, 1.1452, 1.4979, 1.8714, 2.2241, 2.556, 3.3029, 3.6971, 4.0705,
-    4.4025, 4.7967), // col 0
-    (1.0494, 10.3864, 137.3171, 880.2596, 2802.8818, 6366.375, 11637.7296, 27079.1315, 478234.2968, 6797282.648, 6477049.939, 4195217.591, 501878.7439,
-    90487.1326, 32844.8336, 9594.8, 5780.6417, 2367.2902, 140.6707, 5.1591) // col 1
+    (-2.5477, -2.2158, -1.7801, -1.4481, -1.0747, -0.7012, -0.3485, 0.0249,
+    0.3776, 0.751, 1.1452, 1.4979, 1.8714, 2.2241, 2.556, 3.3029, 3.6971,
+    4.0705, 4.4025, 4.7967), // col 0
+    (1.0494, 10.3864, 137.3171, 880.2596, 2802.8818, 6366.375, 11637.7296,
+    27079.1315, 478234.2968, 6797282.648, 6477049.939, 4195217.591, 501878.7439,
+    90487.1326, 32844.8336, 9594.8, 5780.6417, 2367.2902, 140.6707, 5.1591)
+    // col 1
     );
 
 procedure TMainForm.ConfButtonClick(Sender: TObject);
@@ -135,7 +163,8 @@ begin
   DocForm.Show;
 end;
 
-procedure TMainForm.MarcovStringGrid1DrawCell(Sender: TObject; ACol, ARow: Integer; Rect: TRect; State: TGridDrawState);
+procedure TMainForm.MarcovStringGrid1DrawCell(Sender: TObject;
+  ACol, ARow: Integer; Rect: TRect; State: TGridDrawState);
 begin
   if ARow = 32 - LigneAGrossir then
   begin
@@ -143,11 +172,13 @@ begin
     MarcovStringGrid1.Canvas.Pen.Width := 2; // Largeur renforcée
     MarcovStringGrid1.Canvas.MoveTo(Rect.Left, Rect.Bottom - 1);
     MarcovStringGrid1.Canvas.LineTo(Rect.Right, Rect.Bottom - 1);
-    MarcovStringGrid1.Canvas.Pen.Width := 1; // Remettre à la valeur standard
+    MarcovStringGrid1.Canvas.Pen.Width := 1;
+    // Remettre à la valeur standard
   end;
 end;
 
-procedure TMainForm.MarcovStringGrid2DrawCell(Sender: TObject; ACol, ARow: Integer; Rect: TRect; State: TGridDrawState);
+procedure TMainForm.MarcovStringGrid2DrawCell(Sender: TObject;
+  ACol, ARow: Integer; Rect: TRect; State: TGridDrawState);
 begin
   if ARow = 32 - LigneAGrossir then
   begin
@@ -155,7 +186,8 @@ begin
     MarcovStringGrid2.Canvas.Pen.Width := 2; // Largeur renforcée
     MarcovStringGrid2.Canvas.MoveTo(Rect.Left, Rect.Bottom - 1);
     MarcovStringGrid2.Canvas.LineTo(Rect.Right, Rect.Bottom - 1);
-    MarcovStringGrid2.Canvas.Pen.Width := 1; // Remettre à la valeur standard
+    MarcovStringGrid2.Canvas.Pen.Width := 1;
+    // Remettre à la valeur standard
   end;
 end;
 
@@ -225,14 +257,26 @@ begin
   ConfButtonClick(Sender)
 end;
 
+function CalcChecksum(const Buffer: array of Byte; Count: Integer): Byte;
+var
+  i: Integer;
+  Sum: Integer;
+begin
+  Sum := 0;
+  for i := 0 to Count - 1 do
+    Sum := Sum + Buffer[i];
+  Result := Byte(Sum and $FF);
+end;
+
 procedure TMainForm.RunButtonClick(Sender: TObject);
 Var
   i, j, k, col, raw: Integer;
   Line: String;
   LinePosition, LineCount: Integer;
   ss: TStringList;
-  count, n, n_1, nq, nq_1, nq_avg, slope, slope_1, minmax, minmax_1: Integer;
+  Count, n, n_1, nq, nq_1, nq_avg, slope, slope_1, minmax, minmax_1: Integer;
   nf, nff, nff_sum, nff_avg: Extended;
+  ax, ay, az: Extended;
   fc: Extended; // Freq de coupure du passe bas
   Filter: TFilterButterworth;
   spectrum: Array [0 .. 31] of Integer;
@@ -244,21 +288,40 @@ Var
   NAccel, NGyro: Integer;
   AccelOutlier, AccelMin, AccelMax, GyroOutlier, GyroMin, GyroMax: Extended;
   Fifo: TFifo;
-  Theta, ThetaDot, ThetaDotDot, Ax: Extended;
+  Theta, ThetaDot, ThetaDotDot: Extended;
+  Buffer: array [0 .. 9] of Byte; // 10 octets pour chaque message
+  Checksum: Byte;
+
+  Function Envol_Determination(ax, ay, az: Extended): Boolean;
+  Begin
+    If Not EnVol then
+    begin
+      if az > 1.3 then
+        Envol_Determination := True
+      else
+        Envol_Determination := False;
+    end
+    else if ax < -0.2 then
+      Envol_Determination := False
+    else
+      Envol_Determination := True;
+  End;
 
   Procedure Exploite_data;
   begin
-    if ConfForm.ShowDataCheckBox.Checked then
-      Memo4.Lines.Add(Format('%5.3f' + #9 + '%8.2f', [Temps, nf]));
-    // high resolution quantification
     n := trunc((nff - LowG) / Quantum); // n load factor coded on 10 bits
     if ConfForm.ShowDataCheckBox.Checked then
+    begin
+      Memo4.Lines.Add(Format('%5.3f' + #9 + '%8.2f', [Temps, nf]));
+      // high resolution quantification
       Memo3.Lines.Add(Format('%5.3f' + #9 + '%4d', [Temps, n]));
+    end;
     // only process data if difference between n and n_1 is larger than 1
     if (abs(n - n_1) > 1) then
     begin
       // low resolution quantification
-      nq := trunc((nff - LowG) / QuantumRough); // nq load factor coded on 5 bits
+      nq := trunc((nff - LowG) / QuantumRough);
+      // nq load factor coded on 5 bits
       if ConfForm.ShowDataCheckBox.Checked then
         Memo2.Lines.Add(Format('%5.3f' + #9 + '%3d', [Temps, nq]));
       // only consider nq if it is different from nq_1
@@ -277,8 +340,9 @@ Var
 
           // Display results
           // Display n and nq for min/max
-          //Series1.AddXY(Temps, n * UnderSample div ClassNumbers);
-          Series2.AddXY(Temps, nq);
+          // Series1.AddXY(Temps, n * UnderSample div ClassNumbers);
+          if GraphCheckBox.Checked then
+            Series2.AddXY(Temps, nq);
 
           // keep track of last minmax
           minmax_1 := minmax;
@@ -291,7 +355,8 @@ Var
     // keep track of last n
     n_1 := n;
     if LineCount mod 1000 = 0 then
-      ProgressBar1.Position := Round((Temps - StartTime) / (StopTime - StartTime) * 100.0);
+      ProgressBar1.Position :=
+        Round((Temps - StartTime) / (StopTime - StartTime) * 100.0);
   end;
 
 begin
@@ -312,29 +377,48 @@ begin
   Series6.Clear;
   // Lecture du fichier de données
   FileName := FileNameLabeledEdit.Text;
-  if RadioGroup1.ItemIndex = 3 then FileName:='D:\Data\Jean_Luc_Derouineau\AESA\Win32\Debug\serial_20230613_103232.txt';
+  if RepereRadioGroup.ItemIndex = 0 then
+    Repere := 1
+  else
+    Repere := -1;
+
+  if RadioGroup1.ItemIndex = 3 then
+    FileName :=
+      'D:\Data\Jean_Luc_Derouineau\AESA\Win32\Debug\serial_20230613_103232.txt';
   if FileExists(FileName) then
   begin
-    AssignFile(InputFile, FileName);
+    if RadioGroup1.ItemIndex > 0 then
+      AssignFile(InputFile, FileName)
+    else
+      AssignFile(BinaryFile, FileName);
   end
   else
   begin
     if FileOpenTextFileDialog.Execute then
     begin
-      AssignFile(InputFile, FileOpenTextFileDialog.FileName);
+      if RadioGroup1.ItemIndex > 0 then
+        AssignFile(InputFile, FileOpenTextFileDialog.FileName)
+      else
+        AssignFile(BinaryFile, FileOpenTextFileDialog.FileName);
       FileName := FileOpenTextFileDialog.FileName;
       FileNameLabeledEdit.Text := FileName;
     end
     else
       exit;
   end;
-  Reset(InputFile);
-  ss := TStringList.Create;
-  // Read the file first two lines
-  Readln(InputFile, Line);
-  Readln(InputFile, Line);
+  if RadioGroup1.ItemIndex = 0 then
+    Reset(BinaryFile, 1)
+  else
+  begin
+    Reset(InputFile);
+
+    ss := TStringList.Create;
+    // Read the file first two lines
+    Readln(InputFile, Line);
+    Readln(InputFile, Line);
+  end;
   Temps := 0.0;
-  count := 0;
+  Count := 0;
   n_1 := 0;
   nq_1 := 0;
   slope_1 := 1;
@@ -374,18 +458,24 @@ begin
   MarcovStringGrid2.ColWidths[0] := 20;
   spectrumStringGrid.ColWidths[0] := 20;
   for i := 1 to 32 do
-    MarcovStringGrid1.Cells[i, 0] := IntToStr(i); // initialisation de l'entête des colonnes
+    MarcovStringGrid1.Cells[i, 0] := IntToStr(i);
+  // initialisation de l'entête des colonnes
   for i := 1 to 32 do
-    MarcovStringGrid1.Cells[0, 33 - i] := IntToStr(i); // initialisation de l'entête des colonnes
+    MarcovStringGrid1.Cells[0, 33 - i] := IntToStr(i);
+  // initialisation de l'entête des colonnes
   for i := 1 to 32 do
-    MarcovStringGrid2.Cells[i, 0] := IntToStr(i); // initialisation de l'entête des colonnes
+    MarcovStringGrid2.Cells[i, 0] := IntToStr(i);
+  // initialisation de l'entête des colonnes
   for i := 1 to 32 do
-    MarcovStringGrid2.Cells[0, 33 - i] := IntToStr(i); // initialisation de l'entête des colonnes
+    MarcovStringGrid2.Cells[0, 33 - i] := IntToStr(i);
+  // initialisation de l'entête des colonnes
   for i := 1 to 1 do
-    spectrumStringGrid.Cells[i, 0] := IntToStr(i); // initialisation de l'entête des colonnes
+    spectrumStringGrid.Cells[i, 0] := IntToStr(i);
+  // initialisation de l'entête des colonnes
   for i := 1 to 32 do
   begin
-    spectrumStringGrid.Cells[0, 33 - i] := IntToStr(i); // initialisation de l'entête des colonnes
+    spectrumStringGrid.Cells[0, 33 - i] := IntToStr(i);
+    // initialisation de l'entête des colonnes
     spectrumStringGrid.Cells[1, 33 - i] := '';
   end;
   for i := 0 to 31 do
@@ -418,7 +508,7 @@ begin
   else
   begin
     Chart1.Axes.Left.Maximum := HighG;
-    Chart1.Axes.Left.Minimum := LowG / 5.0
+    Chart1.Axes.Left.Minimum := LowG;
   end;
   NAccel := StrToInt(Form3.NAccelLabeledEdit.Text);
   NGyro := StrToInt(Form3.NGyroLabeledEdit.Text);
@@ -429,38 +519,94 @@ begin
   AccelMax := StrToFloat(Form3.NMaxLabeledEdit.Text);
   GyroMax := StrToFloat(Form3.GMaxLabeledEdit.Text);
   gy_AB := TAlphaBeta.Create(NGyro, deltaT, GyroOutlier, GyroMin, GyroMax);
+  ax_AB := TAlphaBeta.Create(NAccel, deltaT, AccelOutlier, AccelMin, AccelMax);
   az_AB := TAlphaBeta.Create(NAccel, deltaT, AccelOutlier, AccelMin, AccelMax);
   FIFO_DEPTH := StrToInt(ConfForm.FifoDepthLabeledEdit.Text);
   InitFifo(FIFO_DEPTH, Fifo);
   Theta := 22.0 * pi / 180.0;
   ThetaDot := 0.0;
   // Compute nq_avg
+  nff_sum := 0;
+  Temps := 0.0;
+  Temps_1 := 0.0;
+  Temps_Cumule := 0.0;
   if RadioGroup1.ItemIndex = 0 then
   begin
-    for i := 0 to 5 do
-      for j := 0 to 5 do
-      Begin
-        Markov1[j, i] := Markov1_test[j, i]; // i=n°col, j=N° ligne
-      End;
-    nq_avg := 3;
+    // Average for binary file
+    While Not EoF(BinaryFile) do
+    begin
+      // Lire le header (2 octets)
+      BlockRead(BinaryFile, Buffer, 2);
+      if Buffer[0] = $55 then
+      begin
+        if Buffer[1] = $50 then
+        begin
+          // Message temps
+          BlockRead(BinaryFile, Buffer[2], 9);
+          // Lire le reste (8 octets)
+          Move(Buffer, TimeMsg, SizeOf(TimeMsg));
+          Checksum := CalcChecksum(Buffer, 10); // 9 premiers octets
+          if Checksum = TimeMsg.Checksum then
+          begin
+            // Message temps valide, traiter ici
+            Temps := TimeMsg.Hour * 3600 + TimeMsg.Minute * 60 + TimeMsg.Second
+              + SmallInt((TimeMsg.MS_H shl 8) or TimeMsg.MS_L) / 1000.0;
+            if StartTime = 0 then
+              StartTime := Temps;
+
+          end;
+        end
+        else if Buffer[1] = $51 then
+        begin
+          // Message accélération
+          BlockRead(BinaryFile, Buffer[2], 9);
+          // Lire le reste (8 octets)
+          Move(Buffer, AccMsg, SizeOf(AccMsg));
+          Checksum := CalcChecksum(Buffer, 10); // 9 premiers octets
+          if Checksum = AccMsg.Checksum then
+          begin
+            // Message accélération valide, traiter ici
+            az := SmallInt((AccMsg.Az_H shl 8) or AccMsg.Az_L) / 2048.0;
+            az_AB.ABupdate(deltaT, -az * Repere);
+            nff := az_AB.ABfilt;
+            // if (Temps >= StartTime) and (Temps <= StopTime) then
+            if (True) then
+            begin
+              // sum nff values
+              nff_sum := nff_sum + nff;
+              Count := Count + 1;
+            end;
+          end;
+        end;
+        // Graph nf for entire file
+        if GraphCheckBox.Checked then
+        begin
+          Series3.AddXY(Temps, az);
+          Series6.AddXY(Temps, nff);
+        end;
+        if Count mod 1000 = 0 then
+          ProgressBar1.Position := Round(Temps / StopTime * 100.0);
+      end;
+    end;
+    // CloseFile(BinaryFile);
+    StopTime := Temps;
   end
   else
   begin
-    // TODO passer au format $I pour facilement traiter tous les fichiers de vol
-    nff_sum := 0;
-    Temps := 0.0;
-    // compute average load factor
+    // Compute average for non binary file
     While Not EoF(InputFile) do
     begin
       Readln(InputFile, Line);
       Inc(LineCount);
       ss.CommaText := Line;
-      i := ss.count;
+      i := ss.Count;
       if (Temps >= StartTime) then
-        Inc(LinePosition); // Mémorisation du nombre de lignes où Temps=Startime
+        Inc(LinePosition);
+      // Mémorisation du nombre de lignes où Temps=Startime
       if RadioGroup1.ItemIndex >= 2 then
       begin
-        if (Pos('$I', Line) > 0) and (Pos('$S', Line) = 0) and ((i = 9) or (i = 10)) and (Line.CountChar('$') = 1) then
+        if (Pos('$I', Line) > 0) and (Pos('$S', Line) = 0) and
+          ((i = 9) or (i = 10)) and (Line.CountChar('$') = 1) then
         begin
           Temps := StrToFloat(ss[2]) / 1000.0;
           nf := -StrToFloat(ss[5]) / 10000.0 / Gravity;
@@ -489,25 +635,26 @@ begin
           begin
             // sum nff values
             nff_sum := nff_sum + nff;
-            count := count + 1;
+            Count := Count + 1;
           end;
         end;
       end
       else
       begin
-        Temps := StrToFloat(ss[0]);
-        nf := -StrToFloat(ss[1]);
+        Temps := StrToFloat(ss[0]) / 1000;
+        nf := -StrToFloat(ss[1]) * Repere;
         // filter data to remove noise
         if (Temps >= StartTime) and (Temps <= StopTime) then
         begin
           if fc > 0 then
-            Filter.ProcessData(deltaT, nf, nff) // nff corresponds to filtered load factor nf
+            Filter.ProcessData(deltaT, nf, nff)
+            // nff corresponds to filtered load factor nf
           else
             nff := nf;
 
           // sum nff values
           nff_sum := nff_sum + nff;
-          count := count + 1;
+          Count := Count + 1;
         end;
       end;
       // Graph nf for entire file
@@ -519,32 +666,105 @@ begin
       if LineCount mod 1000 = 0 then
         ProgressBar1.Position := Round(Temps / StopTime * 100.0);
     end;
-    // compute average low resolution nq
-    if count>0 then nq_avg := trunc((nff_sum / count - LowG) / QuantumRough) else
+  end;
+  // compute average low resolution nq
+  if Count > 0 then
+    nq_avg := trunc((nff_sum / Count - LowG) / QuantumRough)
+  else
+  begin
+    Application.MessageBox('Aucune mesure entre Start and Stop',
+      'ATTENTION', IdOk);
+    exit;
+  end;
+  Label1.Caption := Format('nq_avg = %8d', [nq_avg]);
+  LigneAGrossir := nq_avg;
+  gy_AB.Free;
+  ax_AB.Free;
+  az_AB.Free;
+  Application.ProcessMessages;
+  if RadioGroup1.ItemIndex = 3 then
+    Series3.Clear;
+  Series6.Clear;
+  // Fin du calcul de la moyenne
+
+  Sleep(3000);
+
+  // Calcul KOSSIRA
+  ProgressBar1.Position := 0;
+  LineCount := 0;
+  Count := 0;
+  EnVol := False;
+  gy_AB := TAlphaBeta.Create(NGyro, deltaT, GyroOutlier, GyroMin, GyroMax);
+  ax_AB := TAlphaBeta.Create(NAccel, deltaT, AccelOutlier, AccelMin, AccelMax);
+  az_AB := TAlphaBeta.Create(NAccel, deltaT, AccelOutlier, AccelMin, AccelMax);
+  // reset file to begining
+  if RadioGroup1.ItemIndex = 0 then
+  begin
+    Reset(BinaryFile, 1);
+    While Not EoF(BinaryFile) do
+    begin
+      // Lire le header (2 octets)
+      BlockRead(BinaryFile, Buffer, 2);
+      if Buffer[0] = $55 then
       begin
-      Application.MessageBox('Aucune mesure entre Start and Stop','ATTENTION',IdOk);
-      Exit;
+        if Buffer[1] = $50 then
+        begin
+          // Message temps
+          BlockRead(BinaryFile, Buffer[2], 9);
+          // Lire le reste (8 octets)
+          Move(Buffer, TimeMsg, SizeOf(TimeMsg));
+          Checksum := CalcChecksum(Buffer, 10); // 9 premiers octets
+          if Checksum = TimeMsg.Checksum then
+          begin
+            // Message temps valide, traiter ici
+            Temps := TimeMsg.Hour * 3600 + TimeMsg.Minute * 60 + TimeMsg.Second
+              + SmallInt((TimeMsg.MS_H shl 8) or TimeMsg.MS_L) / 1000.0;
+          end;
+        end
+        else if Buffer[1] = $51 then
+        begin
+          // Message accélération
+          BlockRead(BinaryFile, Buffer[2], 9);
+          // Lire le reste (8 octets)
+          Move(Buffer, AccMsg, SizeOf(AccMsg));
+          Checksum := CalcChecksum(Buffer, 10); // 9 premiers octets
+          if Checksum = AccMsg.Checksum then
+          begin
+            // Message accélération valide, traiter ici
+            ax := SmallInt((AccMsg.Ax_H shl 8) or AccMsg.Ax_L) / 2048.0;
+            ay := SmallInt((AccMsg.Ay_H shl 8) or AccMsg.Ay_L) / 2048.0;
+            az := SmallInt((AccMsg.Az_H shl 8) or AccMsg.Az_L) / 2048.0;
+            ax_AB.ABupdate(deltaT, ax);
+            az_AB.ABupdate(deltaT, -az * Repere);
+            nff := az_AB.ABfilt;
+            EnVol := Envol_Determination(ax_AB.ABfilt, ax, nff);
+            Count := Count + 1;
+          end;
+        end;
+        if (nff >= LowG) and (nff <= HighG) then
+        begin
+          if GraphCheckBox.Checked then
+            Series1.AddXY(Temps, nff);
+            Series3.AddXY(Temps, ax);
+            if Envol then Series6.AddXY(Temps,1) else Series6.AddXY(Temps,0);
+          if EnVol then
+          begin
+            Temps_Cumule := Temps_Cumule + Temps - Temps_1;
+            Temps_1 := Temps;
+            Exploite_data;
+          end;
+        end;
       end;
-    Label1.Caption := Format('nq_avg = %8d', [nq_avg]);
-    LigneAGrossir := nq_avg;
-    gy_AB.Free;
-    az_AB.Free;
-    Application.ProcessMessages;
-    if RadioGroup1.ItemIndex = 3 then
-      Series3.Clear;
-    // Series6.Clear;
-    Sleep(3000);
-    ProgressBar1.Position := 0;
-    LineCount := 0;
-    // reset file to begining
+    end;
+  end
+  else
+  begin
     Reset(InputFile);
     // Read the file first two lines
     Readln(InputFile, Line);
     Readln(InputFile, Line);
     // skip records until start time is reached
     Temps := StartTime;
-    gy_AB := TAlphaBeta.Create(NGyro, deltaT, GyroOutlier, GyroMin, GyroMax);
-    az_AB := TAlphaBeta.Create(NAccel, deltaT, AccelOutlier, AccelMin, AccelMax);
     i := 0;
     // skip records until start time is reached
     Repeat
@@ -552,20 +772,21 @@ begin
       Readln(InputFile, Line);
     until (i >= LinePosition) or EoF(InputFile);
     Reset(InputFile);
-    ReadLn(InputFile);
-    ReadLn(InputFile);
+    Readln(InputFile);
+    Readln(InputFile);
     While Not EoF(InputFile) and (Temps >= StartTime) and (Temps <= StopTime) do
     begin
       Readln(InputFile, Line);
       Inc(LineCount);
       ss.CommaText := Line;
-      i := ss.count;
+      i := ss.Count;
       if RadioGroup1.ItemIndex >= 2 then
       begin
-        if (Pos('$I', Line) > 0) and (Pos('$S', Line) = 0) and ((i = 9) or (i = 10)) and (Line.CountChar('$') = 1) then
+        if (Pos('$I', Line) > 0) and (Pos('$S', Line) = 0) and
+          ((i = 9) or (i = 10)) and (Line.CountChar('$') = 1) then
         begin
           Temps := StrToFloat(ss[2]) / 1000.0;
-          Ax := -(StrToFloat(ss[3]) / 10000.0 - 0.5) / Gravity;
+          ax := -(StrToFloat(ss[3]) / 10000.0 - 0.5) / Gravity;
           nf := -(StrToFloat(ss[5]) / 10000.0 - 0.04) / Gravity;
           gx := StrToFloat(ss[6]) / 100000.0;
           gy_raw := StrToFloat(ss[7]) / 100000.0;
@@ -593,14 +814,16 @@ begin
           begin
             if Temps > 333.8 then
             begin
-              ThetaDotDot := -0.083 * ThetaDot * abs(ThetaDot) - Gravity / DistCdGz * sin(Theta);
+              ThetaDotDot := -0.083 * ThetaDot * abs(ThetaDot) - Gravity /
+                DistCdGz * sin(Theta);
               ThetaDot := ThetaDot + ThetaDotDot * deltaT;
               Theta := Theta + ThetaDot * deltaT;
             end;
             if GraphCheckBox.Checked then
             begin
               // Series3.AddXY(Temps, nff - cos(Theta));
-              Series3.AddXY(Temps, sqrt(sqr(nff) + sqr(Ax - DistCdGz * ThetaDotDot / Gravity)));
+              Series3.AddXY(Temps,
+                sqrt(sqr(nff) + sqr(ax - DistCdGz * ThetaDotDot / Gravity)));
               Series6.AddXY(Temps, ThetaDot);
               Series3.Title := '1';
               Series6.Title := 'Gy_Théorique';
@@ -618,23 +841,21 @@ begin
       end
       else
       begin
-        Temps := StrToFloat(ss[0]);
-        nff := -StrToFloat(ss[1]);
+        Temps := StrToFloat(ss[0]) / 1000;
+        nff := -StrToFloat(ss[1]) * Repere;
         if (nff >= LowG) and (nff <= HighG) then
-          begin
-          Series1.Addxy(Temps,nff);
+        begin
+          Series1.AddXY(Temps, nff);
           Exploite_data;
-          end;
+        end;
       end;
       if Debut = 0 then
         Debut := Temps;
     end;
+
   end;
-  if EoF(InputFile) then
-  begin
-    ProgressBar1.Position := 100;
-    StopTime := Temps;
-  End;
+  ProgressBar1.Position := 100;
+  StopTime := Temps;
   Fin := StopTime;
 
   for i := 0 to 31 do
@@ -652,15 +873,19 @@ begin
     // sum cells above diagonal
     if (col < 31) then
     begin
-      for raw := col + 1 to 31 do // enumerate matrix lines above diagonal
-        for k := raw to 31 do // add all cells values at and above current cell.
+      for raw := col + 1 to 31 do
+        // enumerate matrix lines above diagonal
+        for k := raw to 31 do
+          // add all cells values at and above current cell.
           Markov2[col, raw] := Markov2[col, raw] + Markov1[col, k];
     end;
     // sum cells below diagonal
     if (col > 1) then
     begin
-      for raw := col - 1 downto 0 do // enumerate matrix lines below diagonal
-        for k := raw downto 0 do // add all cells values at and below current cell.
+      for raw := col - 1 downto 0 do
+        // enumerate matrix lines below diagonal
+        for k := raw downto 0 do
+          // add all cells values at and below current cell.
           Markov2[col, raw] := Markov2[col, raw] + Markov1[col, k];
     end;
   end;
@@ -693,7 +918,10 @@ begin
     if spectrum[j] <> 0 then
     begin
       Classes := ((j + 0.5) * QuantumRough + LowG);
-      Occurs := spectrum[j] * (6000.0 * 3600.0) / (Fin - Debut);
+      if RadioGroup1.ItemIndex >= 0 then
+        Occurs := spectrum[j] * (6000.0 * 3600.0) / (Fin - Debut)
+      else
+        Occurs := spectrum[j] * (6000.0 * 3600.0) / (Temps_Cumule);
       spectrumStringGrid.Cells[1, 32 - j] := IntToStr(spectrum[j]);
       Series5.AddXY(Occurs, Classes);
       Memo1.Lines.Add(Format('%8.2f' + #9 + '%8.0f', [Classes, Occurs]));
@@ -713,6 +941,9 @@ begin
   Memo3.Lines.EndUpdate;
   Memo4.Lines.EndUpdate;
   RunningLabel.Caption := 'Complete';
+  gy_AB.Free;
+  ax_AB.Free;
+  az_AB.Free;
 end;
 
 end.
