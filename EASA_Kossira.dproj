@@ -106,7 +106,7 @@
         <RcCompile Include="InfoVersion.rc">
             <Form>InfoVersion.res</Form>
         </RcCompile>
-        <DCCReference Include="UMainMenu.pas">
+        <DCCReference Include="UMainAESA.pas">
             <Form>MainForm</Form>
             <FormType>dfm</FormType>
         </DCCReference>

@@ -17,6 +17,10 @@ type
     GOutlierLabeledEdit: TLabeledEdit;
     GMinLabeledEdit: TLabeledEdit;
     GMaxLabeledEdit: TLabeledEdit;
+    NAccelxLabeledEdit: TLabeledEdit;
+    LabeledEdit2: TLabeledEdit;
+    LabeledEdit3: TLabeledEdit;
+    LabeledEdit4: TLabeledEdit;
   private
     { Déclarations privées }
   public

@@ -2,8 +2,8 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'Determination of load spectra'
-  ClientHeight = 521
-  ClientWidth = 1584
+  ClientHeight = 778
+  ClientWidth = 1367
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -16,13 +16,14 @@ object MainForm: TMainForm
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 1584
+    Width = 1367
     Height = 49
     Align = alTop
     TabOrder = 0
     VerticalAlignment = taAlignTop
+    ExplicitWidth = 1584
     DesignSize = (
-      1584
+      1367
       49)
     object Label1: TLabel
       Left = 744
@@ -32,7 +33,7 @@ object MainForm: TMainForm
       Caption = 'nq_avg'
     end
     object RunningLabel: TLabel
-      Left = 840
+      Left = 992
       Top = 23
       Width = 77
       Height = 15
@@ -53,80 +54,23 @@ object MainForm: TMainForm
       TabOrder = 0
       Text = 'binary.TXT'
     end
-    object StartLabeledEdit: TLabeledEdit
-      Left = 384
-      Top = 20
-      Width = 65
-      Height = 23
-      EditLabel.Width = 50
-      EditLabel.Height = 15
-      EditLabel.Margins.Left = 6
-      EditLabel.Margins.Top = 6
-      EditLabel.Margins.Right = 6
-      EditLabel.Margins.Bottom = 6
-      EditLabel.Caption = 'StartTime'
-      TabOrder = 1
-      Text = '297.5'
-    end
-    object StopLabeledEdit: TLabeledEdit
-      Left = 455
-      Top = 20
-      Width = 65
-      Height = 23
-      EditLabel.Width = 50
-      EditLabel.Height = 15
-      EditLabel.Margins.Left = 6
-      EditLabel.Margins.Top = 6
-      EditLabel.Margins.Right = 6
-      EditLabel.Margins.Bottom = 6
-      EditLabel.Caption = 'StopTime'
-      TabOrder = 2
-      Text = '8000'
-    end
     object RunButton: TButton
-      Left = 1532
-      Top = 5
+      Left = 1323
+      Top = 10
       Width = 35
       Height = 20
       Anchors = [akTop, akRight]
       Caption = 'Run'
-      TabOrder = 3
+      TabOrder = 1
       OnClick = RunButtonClick
+      ExplicitLeft = 1540
     end
     object ProgressBar1: TProgressBar
-      Left = 526
+      Left = 384
       Top = 26
-      Width = 191
+      Width = 333
       Height = 17
-      TabOrder = 4
-    end
-    object RadioGroup1: TRadioGroup
-      Left = 1180
-      Top = 6
-      Width = 278
-      Height = 30
-      Margins.Top = 0
-      Margins.Bottom = 0
-      Anchors = [akTop, akRight]
-      Caption = 'Test or Real'
-      Columns = 4
-      DefaultHeaderFont = False
-      HeaderFont.Charset = DEFAULT_CHARSET
-      HeaderFont.Color = clWindowText
-      HeaderFont.Height = 10
-      HeaderFont.Name = 'Arial'
-      HeaderFont.Pitch = fpFixed
-      HeaderFont.Style = []
-      HeaderFont.Quality = fqDraft
-      ItemIndex = 0
-      Items.Strings = (
-        'Binaire'
-        'TextFile'
-        'XCVarioFile'
-        'Pendule')
-      ShowFrame = False
-      TabOrder = 5
-      StyleName = 'Windows'
+      TabOrder = 2
     end
     object GraphCheckBox: TCheckBox
       Left = 526
@@ -136,7 +80,7 @@ object MainForm: TMainForm
       Caption = 'Graph'
       Checked = True
       State = cbChecked
-      TabOrder = 6
+      TabOrder = 3
     end
     object ParalaxeCheckBox: TCheckBox
       Left = 641
@@ -146,10 +90,10 @@ object MainForm: TMainForm
       Caption = 'Paralaxe'
       Checked = True
       State = cbChecked
-      TabOrder = 7
+      TabOrder = 4
     end
     object RepereRadioGroup: TRadioGroup
-      Left = 987
+      Left = 810
       Top = 10
       Width = 123
       Height = 36
@@ -171,65 +115,71 @@ object MainForm: TMainForm
         'NED'
         'ENU')
       ShowFrame = False
-      TabOrder = 8
+      TabOrder = 5
       StyleName = 'Windows'
     end
   end
   object PageControl1: TPageControl
     Left = 0
     Top = 49
-    Width = 1584
-    Height = 472
+    Width = 1367
+    Height = 729
     ActivePage = GraphTabSheet
     Align = alClient
     TabOrder = 1
+    ExplicitWidth = 1584
+    ExplicitHeight = 472
     object DataTabSheet: TTabSheet
       Caption = 'Data'
       object Memo2: TMemo
         Left = 274
         Top = 0
         Width = 144
-        Height = 442
+        Height = 699
         Align = alLeft
         Lines.Strings = (
           'Resampled Data'
           'Time    Value')
         ScrollBars = ssVertical
         TabOrder = 0
+        ExplicitHeight = 700
       end
       object Memo3: TMemo
         Left = 137
         Top = 0
         Width = 137
-        Height = 442
+        Height = 699
         Align = alLeft
         Lines.Strings = (
           'Sampled Data'
           'Time    Value')
         ScrollBars = ssVertical
         TabOrder = 1
+        ExplicitHeight = 700
       end
       object Memo4: TMemo
         Left = 0
         Top = 0
         Width = 137
-        Height = 442
+        Height = 699
         Align = alLeft
         Lines.Strings = (
           'Raw Data'
           'Time    Value')
         ScrollBars = ssVertical
         TabOrder = 2
+        ExplicitHeight = 700
       end
       object Memo1: TMemo
         Left = 418
         Top = 0
         Width = 167
-        Height = 442
+        Height = 699
         Align = alLeft
         Lines.Strings = (
           'Kossira')
         TabOrder = 3
+        ExplicitHeight = 700
       end
     end
     object GraphTabSheet: TTabSheet
@@ -238,8 +188,8 @@ object MainForm: TMainForm
       object Chart1: TChart
         Left = 0
         Top = 0
-        Width = 1576
-        Height = 442
+        Width = 1359
+        Height = 699
         Legend.Alignment = laBottom
         Title.Text.Strings = (
           'Load factor')
@@ -252,11 +202,13 @@ object MainForm: TMainForm
         View3D = False
         Align = alClient
         TabOrder = 0
+        ExplicitWidth = 1576
+        ExplicitHeight = 442
         DefaultCanvas = ''
         ColorPaletteIndex = 13
         object Series3: TFastLineSeries
           SeriesColor = clFuchsia
-          Title = 'RawData'
+          Title = 'Ax'
           FastPen = True
           LinePen.Color = clFuchsia
           LinePen.EndStyle = esRound
@@ -268,7 +220,7 @@ object MainForm: TMainForm
         end
         object Series6: TFastLineSeries
           SeriesColor = 16744448
-          Title = 'Para'
+          Title = 'Az'
           FastPen = True
           LinePen.Color = 16744448
           LinePen.EndStyle = esRound
@@ -282,7 +234,7 @@ object MainForm: TMainForm
         object Series1: TPointSeries
           Marks.Callout.Length = 8
           SeriesColor = clGreen
-          Title = 'n'
+          Title = 'EnVol'
           ClickableLine = False
           Pointer.HorizSize = 1
           Pointer.InflateMargins = True
@@ -319,7 +271,7 @@ object MainForm: TMainForm
         Left = 0
         Top = 0
         Width = 1233
-        Height = 442
+        Height = 699
         Align = alLeft
         ColCount = 33
         DefaultColWidth = 36
@@ -330,6 +282,7 @@ object MainForm: TMainForm
         Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goFixedRowDefAlign]
         TabOrder = 0
         OnDrawCell = MarcovStringGrid1DrawCell
+        ExplicitHeight = 700
       end
     end
     object Marcov2TabSheet: TTabSheet
@@ -339,7 +292,7 @@ object MainForm: TMainForm
         Left = 0
         Top = 0
         Width = 1233
-        Height = 442
+        Height = 699
         Align = alLeft
         ColCount = 33
         Ctl3D = False
@@ -352,12 +305,13 @@ object MainForm: TMainForm
         ParentCtl3D = False
         TabOrder = 0
         OnDrawCell = MarcovStringGrid2DrawCell
+        ExplicitHeight = 700
       end
       object spectrumStringGrid: TStringGrid
-        Left = 1455
+        Left = 1238
         Top = 0
         Width = 121
-        Height = 442
+        Height = 699
         Align = alRight
         ColCount = 2
         DefaultColWidth = 63
@@ -366,6 +320,8 @@ object MainForm: TMainForm
         FixedColor = clMoneyGreen
         RowCount = 33
         TabOrder = 1
+        ExplicitLeft = 1247
+        ExplicitHeight = 700
       end
     end
     object SpectraTabSheet: TTabSheet
@@ -374,8 +330,8 @@ object MainForm: TMainForm
       object Chart2: TChart
         Left = 0
         Top = 0
-        Width = 1576
-        Height = 442
+        Width = 1359
+        Height = 699
         Legend.Alignment = laBottom
         Legend.LegendStyle = lsSeries
         Title.Text.Strings = (
@@ -392,6 +348,8 @@ object MainForm: TMainForm
         View3D = False
         Align = alClient
         TabOrder = 0
+        ExplicitWidth = 1576
+        ExplicitHeight = 700
         DefaultCanvas = ''
         ColorPaletteIndex = 13
         object Series4: TLineSeries

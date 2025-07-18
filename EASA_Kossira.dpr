@@ -4,7 +4,7 @@ program EASA_Kossira;
 
 uses
   Vcl.Forms,
-  UMainMenu in 'UMainMenu.pas' {MainForm},
+  UMainAESA in 'UMainAESA.pas' {MainForm},
   UConf in 'UConf.pas' {ConfForm},
   FilterButterworth in 'FilterButterworth.pas',
   UAPropos in 'UAPropos.PAS' {OKRightDlg},
