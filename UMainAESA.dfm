@@ -21,7 +21,6 @@ object MainForm: TMainForm
     Align = alTop
     TabOrder = 0
     VerticalAlignment = taAlignTop
-    ExplicitWidth = 1584
     DesignSize = (
       1367
       49)
@@ -63,7 +62,6 @@ object MainForm: TMainForm
       Caption = 'Run'
       TabOrder = 1
       OnClick = RunButtonClick
-      ExplicitLeft = 1540
     end
     object ProgressBar1: TProgressBar
       Left = 384
@@ -75,7 +73,7 @@ object MainForm: TMainForm
     object GraphCheckBox: TCheckBox
       Left = 526
       Top = 3
-      Width = 97
+      Width = 59
       Height = 17
       Caption = 'Graph'
       Checked = True
@@ -85,7 +83,7 @@ object MainForm: TMainForm
     object ParalaxeCheckBox: TCheckBox
       Left = 641
       Top = 3
-      Width = 97
+      Width = 76
       Height = 17
       Caption = 'Paralaxe'
       Checked = True
@@ -118,6 +116,16 @@ object MainForm: TMainForm
       TabOrder = 5
       StyleName = 'Windows'
     end
+    object CumulCheckBox: TCheckBox
+      Left = 384
+      Top = 3
+      Width = 113
+      Height = 17
+      Caption = 'Occurs'#39' Cumul '
+      Checked = True
+      State = cbChecked
+      TabOrder = 6
+    end
   end
   object PageControl1: TPageControl
     Left = 0
@@ -127,8 +135,6 @@ object MainForm: TMainForm
     ActivePage = GraphTabSheet
     Align = alClient
     TabOrder = 1
-    ExplicitWidth = 1584
-    ExplicitHeight = 472
     object DataTabSheet: TTabSheet
       Caption = 'Data'
       object Memo2: TMemo
@@ -142,7 +148,6 @@ object MainForm: TMainForm
           'Time    Value')
         ScrollBars = ssVertical
         TabOrder = 0
-        ExplicitHeight = 700
       end
       object Memo3: TMemo
         Left = 137
@@ -155,7 +160,6 @@ object MainForm: TMainForm
           'Time    Value')
         ScrollBars = ssVertical
         TabOrder = 1
-        ExplicitHeight = 700
       end
       object Memo4: TMemo
         Left = 0
@@ -168,7 +172,6 @@ object MainForm: TMainForm
           'Time    Value')
         ScrollBars = ssVertical
         TabOrder = 2
-        ExplicitHeight = 700
       end
       object Memo1: TMemo
         Left = 418
@@ -179,7 +182,6 @@ object MainForm: TMainForm
         Lines.Strings = (
           'Kossira')
         TabOrder = 3
-        ExplicitHeight = 700
       end
     end
     object GraphTabSheet: TTabSheet
@@ -202,8 +204,6 @@ object MainForm: TMainForm
         View3D = False
         Align = alClient
         TabOrder = 0
-        ExplicitWidth = 1576
-        ExplicitHeight = 442
         DefaultCanvas = ''
         ColorPaletteIndex = 13
         object Series3: TFastLineSeries
@@ -282,7 +282,6 @@ object MainForm: TMainForm
         Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goFixedRowDefAlign]
         TabOrder = 0
         OnDrawCell = MarcovStringGrid1DrawCell
-        ExplicitHeight = 700
       end
     end
     object Marcov2TabSheet: TTabSheet
@@ -305,7 +304,6 @@ object MainForm: TMainForm
         ParentCtl3D = False
         TabOrder = 0
         OnDrawCell = MarcovStringGrid2DrawCell
-        ExplicitHeight = 700
       end
       object spectrumStringGrid: TStringGrid
         Left = 1238
@@ -320,8 +318,6 @@ object MainForm: TMainForm
         FixedColor = clMoneyGreen
         RowCount = 33
         TabOrder = 1
-        ExplicitLeft = 1247
-        ExplicitHeight = 700
       end
     end
     object SpectraTabSheet: TTabSheet
@@ -348,8 +344,6 @@ object MainForm: TMainForm
         View3D = False
         Align = alClient
         TabOrder = 0
-        ExplicitWidth = 1576
-        ExplicitHeight = 700
         DefaultCanvas = ''
         ColorPaletteIndex = 13
         object Series4: TLineSeries

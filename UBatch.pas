@@ -50,8 +50,10 @@ end;
 
 procedure TBatchForm.RunButtonClick(Sender: TObject);
 Var
-  i: Integer;
+  i,j: Integer;
 begin
+    for i := 0 to 31 do
+      spectrum[i] := 0;
   OverLabel.Visible := False;
   for i := 0 to ListBoxFiles.Items.Count - 1 do
   begin
@@ -99,6 +101,9 @@ begin
         else
           exit;
       end;
+      FileNameLabeledEdit.Text:=Filename;
+      j:=Pos('.',Filename);
+      FileName:=Copy(Filename,0,Length(Filename)-4);
       AssignFile(ResultFile, FileName + '.res');
       Rewrite(ResultFile);
       Reset(BinaryFile, 1);

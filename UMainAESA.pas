@@ -62,6 +62,7 @@ type
     FiltrageAB1: TMenuItem;
     RepereRadioGroup: TRadioGroup;
     Batch1: TMenuItem;
+    CumulCheckBox: TCheckBox;
     procedure RunButtonClick(Sender: TObject);
     procedure ConfButtonClick(Sender: TObject);
     procedure Open1Click(Sender: TObject);
@@ -115,12 +116,13 @@ var
   BinaryFile: File;
   // InputFile: TextFile;
   ResultFile: TextFile;
-  Temps, Temps_1, Temps_Cumule, GroundTime, SensorTime: Extended;
+  Temps, Temps_1, Temps_Cumule, TakeOffTime, LandingTime: Extended;
   Classes, Occurs: Extended;
+  spectrum: Array [0 .. 31] of Integer;
   Repere: Integer; // 1 for ENU   , -1 for NED
   TimeMsg: TTimeMessage;
   AccMsg: TAccMessage;
-  EnVol: Boolean;
+  inFlight: Boolean;
   TailleFile: LongInt; // taille du fichier, en octets
 
 implementation
@@ -288,7 +290,6 @@ Var
   ax, ay, az: Extended;
   fc: Extended; // Freq de coupure du passe bas
   Filter: TFilterButterworth;
-  spectrum: Array [0 .. 31] of Integer;
   Markov1, Markov2: Array [0 .. 31, 0 .. 31] of Integer;
   Debut, Fin: Extended;
   gx, gz, gy, gy_old, dgy_dt, para_nz, gy_raw: Extended;
@@ -301,21 +302,22 @@ Var
   Buffer: array [0 .. 9] of Byte; // 10 octets pour chaque message
   Checksum: Byte;
 
-  Procedure Envol_Determination(dax, ay, az: Extended; Var EnVol: Boolean;
+  Procedure inFlight_Determination(dax, ay, az: Extended; Var inFlight: Boolean;
     Var GroundTime, SensorTime: Extended);
   Begin
-    If Not EnVol then
+    If Not inFlight then
     begin
       if (az > 1.3) and ((Temps - GroundTime) > 100) then
       begin
-        EnVol := True;
-        SensorTime := Temps;
+        inFlight := True;
+        TakeOffTime := Temps;
       end;
     end
     else if (dax < -0.35) and ((Temps - SensorTime > 100)) then
     begin
-      EnVol := False;
-      GroundTime := Temps;
+      inFlight := False;
+      LandingTime := Temps;
+      Temps_Cumule:=Temps_Cumule+(LandingTime-TakeOffTime);
     end;
   End;
 
@@ -371,8 +373,8 @@ Var
 begin
   // Exploitation du fichier de données
   Temps := 0.0;
-  GroundTime := 0.0;
-  SensorTime := 0.0;
+  TakeOffTime := 0.0;
+  LandingTime := 0.0;
   Count := 0;
   n_1 := 0;
   nq_1 := 0;
@@ -446,8 +448,9 @@ begin
       Markov2[j, i] := 0;
     end;
 
-  for i := 0 to 31 do
-    spectrum[i] := 0;
+  If not CumulCheckBox.Checked then
+    for i := 0 to 31 do
+      spectrum[i] := 0;
   Debut := 0.0;
   Chart1.Axes.Left.Automatic := False;
   Chart1.Axes.Left.Maximum := HighG;
@@ -471,11 +474,11 @@ begin
   Temps_Cumule := 0.0;
   ax_AB := TAlphaBeta.Create(NAccel, deltaT, AccelOutlier, AccelMin, AccelMax);
   az_AB := TAlphaBeta.Create(NAccel, deltaT, AccelOutlier, AccelMin, AccelMax);
-  Writeln(ResultFile,FileName);
-  Series1.Title:='Envol';
-  Series2.Title:='nq';
-  Series3.Title:='Ax';
-  Series6.Title:='Az';
+  Writeln(ResultFile, FileName);
+  Series1.Title := 'inFlight';
+  Series2.Title := 'nq';
+  Series3.Title := 'Ax';
+  Series6.Title := 'Az';
 
   // Average for binary file
   RunningLabel.Caption := 'Averaging';
@@ -498,12 +501,12 @@ begin
           // Message temps valide, traiter ici
           Temps := TimeMsg.Hour * 3600 + TimeMsg.Minute * 60 + TimeMsg.Second +
             SmallInt((TimeMsg.MS_H shl 8) or TimeMsg.MS_L) / 1000.0;
-          if GroundTime = 0 then
+          if TakeOffTime = 0 then
           Begin
             Debut := Temps;
-            Temps_1:=Temps;
-            GroundTime := Temps;
-            SensorTime := Temps;
+            Temps_1 := Temps;
+            TakeOffTime := Temps;
+            LandingTime := Temps;
           End;
         end;
       end
@@ -556,7 +559,7 @@ begin
   RunningLabel.Caption := 'Occuring';
   ProgressBar1.Position := 0;
   Application.ProcessMessages;
-  EnVol := False;
+  inFlight := False;
   // reset file to begining
   Reset(BinaryFile, 1);
   While Not EoF(BinaryFile) do
@@ -595,8 +598,8 @@ begin
           ax_AB.ABupdate(deltaT, ax);
           az_AB.ABupdate(deltaT, -az * Repere);
           nff := -az * Repere;
-          Envol_Determination(ax - ax_AB.ABfilt, ay, az_AB.ABfilt, EnVol,
-            GroundTime, SensorTime);
+          inFlight_Determination(ax - ax_AB.ABfilt, ay, az_AB.ABfilt, inFlight,
+            TakeOffTime, LandingTime);
           Count := Count + 1;
         end;
       end;
@@ -607,11 +610,11 @@ begin
           Series6.AddXY(Temps, nff);
           Series3.AddXY(Temps, ax);
         end;
-        if EnVol then
+        if inFlight then
           Series1.AddXY(Temps, 1)
         else
           Series1.AddXY(Temps, 0);
-        if EnVol then
+        if inFlight then
         begin
           Temps_Cumule := Temps_Cumule + Temps - Temps_1;
           Temps_1 := Temps;
@@ -624,8 +627,9 @@ begin
   end;
   ProgressBar1.Position := 100;
   Fin := Temps;
-  Writeln(ResultFile, 'StartTime (s) :',Debut:10:3,' EndTime (s) :',fin:10:3, ' FlightTime (s) :',Temps_Cumule:10:3);
-  Writeln(ResultFile,' Classes (g)',#9,'occurs');
+  Writeln(ResultFile, 'StartTime (s) :', Debut:10:3, ' EndTime (s) :', Fin:10:3,
+    ' FlightTime (s) :', Temps_Cumule:10:3);
+  Writeln(ResultFile, ' Classes (g)', #9, 'occurs');
   for i := 0 to 31 do
     for j := 0 to 31 do
     Begin
@@ -754,7 +758,7 @@ begin
     else
       exit;
   end;
-  AssignFile(ResultFile, FileName+'.res');
+  AssignFile(ResultFile, FileName + '.res');
   Rewrite(ResultFile);
   Reset(BinaryFile, 1);
   TailleFile := FileSize(BinaryFile);
