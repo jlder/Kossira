@@ -428,7 +428,6 @@ object MainForm: TMainForm
       end
       object FiltrageAB1: TMenuItem
         Caption = 'Filtrage_AB'
-        OnClick = FiltrageAB1Click
       end
       object Batch1: TMenuItem
         Caption = 'Batch'

@@ -79,7 +79,6 @@ type
     procedure MarcovStringGrid1DrawCell(Sender: TObject; ACol, ARow: Integer;
       Rect: TRect; State: TGridDrawState);
     procedure PrintSpectra1Click(Sender: TObject);
-    procedure FiltrageAB1Click(Sender: TObject);
     procedure Batch1Click(Sender: TObject);
     Procedure ExploitationFichier(Sender: TObject);
   private
@@ -130,19 +129,9 @@ implementation
 {$R *.dfm}
 
 // {$R InfoVersion.res}
-uses UConf, UDoc, FilterButterworth, UAPropos, UFiltrages_AB, UFifoSingle,
-  UBatch;
+uses UConf, UDoc, FilterButterworth, UAPropos,UBatch;
 
 Const // [col,ligne]
-  Markov1_test: Array [0 .. 5, 0 .. 5] of Integer = (
-    // ligne 0, 1, 2, 3, 4, 5, 6
-    (0, 1, 0, 0, 1, 0), // col 0
-    (0, 0, 3, 4, 1, 0), // col 1
-    (0, 2, 0, 5, 2, 1), // col 2
-    (0, 3, 7, 0, 1, 0), // col 3
-    (1, 0, 1, 4, 0, 0), // col 4
-    (0, 0, 0, 0, 1, 0) // col 5
-    );
   Kossira_6000h: Array [0 .. 1, 0 .. 19] of Single = (
     // ligne 0, 1, 2, 3, 4, 5, 6
     (-2.5477, -2.2158, -1.7801, -1.4481, -1.0747, -0.7012, -0.3485, 0.0249,
@@ -162,11 +151,6 @@ end;
 procedure TMainForm.ConfButtonClick(Sender: TObject);
 begin
   ConfForm.Show;
-end;
-
-procedure TMainForm.FiltrageAB1Click(Sender: TObject);
-begin
-  Form3.Show;
 end;
 
 procedure TMainForm.Help2Click(Sender: TObject);
@@ -282,23 +266,14 @@ end;
 Procedure TMainForm.ExploitationFichier(Sender: TObject);
 Var
   i, j, k, col, raw: Integer;
-  // Line: String;
-  // LinePosition, LineCount: Integer;
-  // ss: TStringList;
   Count, n, n_1, nq, nq_1, nq_avg, slope, slope_1, minmax, minmax_1: Integer;
   nf, nff, nff_sum, nff_avg: Extended;
   ax, ay, az: Extended;
-  fc: Extended; // Freq de coupure du passe bas
-  Filter: TFilterButterworth;
   Markov1, Markov2: Array [0 .. 31, 0 .. 31] of Integer;
   Debut, Fin: Extended;
-  gx, gz, gy, gy_old, dgy_dt, para_nz, gy_raw: Extended;
-  gx_AB, gy_AB, gz_AB: TAlphaBeta;
   ax_AB, ay_AB, az_AB: TAlphaBeta;
-  NAccel, NAccelx, NGyro: Integer;
-  AccelOutlier, AccelMin, AccelMax, GyroOutlier, GyroMin, GyroMax: Extended;
-  Fifo: TFifo;
-  Theta, ThetaDot, ThetaDotDot: Extended;
+  NAccel, NAccelx: Integer;
+  AccelOutlier, AccelMin, AccelMax: Extended;
   Buffer: array [0 .. 9] of Byte; // 10 octets pour chaque message
   Checksum: Byte;
 
@@ -381,20 +356,6 @@ begin
   slope_1 := 1;
   minmax := 1;
   minmax_1 := 1;
-  // LinePosition := 0;
-  // LineCount := 0;
-  fc := StrToFloat(ConfForm.FrstLabeledEdit.Text);
-  if fc > 0.5 / deltaT then
-  Begin
-    fc := 0.5 / deltaT;
-    ConfForm.FrstLabeledEdit.Text := Format('%5.1f', [fc]);
-    Application.MessageBox('Fc too High', 'Attention', IdOk);
-  end;
-  Filter := TFilterButterworth.Create;
-  if fc > 0 then
-    Filter.DesignFilter(deltaT, fc, a, b);
-
-  // Création d'une Fifo au cas où il faudrait se souvenir du passé
   // Configuration Recall
   ConfForm.ValidationButtonClick(Sender);
   ProgressBar1.Position := 0;
@@ -455,19 +416,11 @@ begin
   Chart1.Axes.Left.Automatic := False;
   Chart1.Axes.Left.Maximum := HighG;
   Chart1.Axes.Left.Minimum := LowG;
-  NAccel := StrToInt(Form3.NAccelLabeledEdit.Text);
-  NAccelx := StrToInt(Form3.NAccelxLabeledEdit.Text);
-  NGyro := StrToInt(Form3.NGyroLabeledEdit.Text);
-  AccelOutlier := StrToFloat(Form3.OutlierLabeledEdit.Text);
-  GyroOutlier := StrToFloat(Form3.GOutlierLabeledEdit.Text);
-  AccelMin := StrToFloat(Form3.NMinLabeledEdit.Text);
-  GyroMin := StrToFloat(Form3.GMinLabeledEdit.Text);
-  AccelMax := StrToFloat(Form3.NMaxLabeledEdit.Text);
-  GyroMax := StrToFloat(Form3.GMaxLabeledEdit.Text);
-  FIFO_DEPTH := StrToInt(ConfForm.FifoDepthLabeledEdit.Text);
-  InitFifo(FIFO_DEPTH, Fifo);
-  Theta := 22.0 * pi / 180.0;
-  ThetaDot := 0.0;
+  NAccel := StrToInt(ConfForm.NAccelLabeledEdit.Text);
+  NAccelx := StrToInt(ConfForm.NAccelxLabeledEdit.Text);
+  AccelOutlier := StrToFloat(ConfForm.OutlierLabeledEdit.Text);
+  AccelMin := StrToFloat(ConfForm.NMinLabeledEdit.Text);
+  AccelMax := StrToFloat(ConfForm.NMaxLabeledEdit.Text);
   // Compute nq_avg
   nff_sum := 0;
   Temps := 0.0;

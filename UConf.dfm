@@ -2,7 +2,7 @@ object ConfForm: TConfForm
   Left = 0
   Top = 0
   Caption = 'Configuration'
-  ClientHeight = 160
+  ClientHeight = 244
   ClientWidth = 626
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -92,24 +92,13 @@ object ConfForm: TConfForm
     Left = 0
     Top = 81
     Width = 626
-    Height = 72
+    Height = 128
     Align = alTop
     Caption = 'Filtering'
     TabOrder = 1
     VerticalAlignment = taAlignTop
-    object FrstLabeledEdit: TLabeledEdit
-      Left = 16
-      Top = 33
-      Width = 73
-      Height = 23
-      EditLabel.Width = 78
-      EditLabel.Height = 15
-      EditLabel.Caption = 'First order (Hz)'
-      TabOrder = 0
-      Text = '5'
-    end
     object dtLabeledEdit: TLabeledEdit
-      Left = 120
+      Left = 16
       Top = 33
       Width = 73
       Height = 23
@@ -117,51 +106,128 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Cursor = crAppStart
       EditLabel.Caption = 'Sample time'
-      TabOrder = 1
+      TabOrder = 0
       Text = '0.05'
     end
-    object ShowDataCheckBox: TCheckBox
-      Left = 544
-      Top = 32
-      Width = 75
-      Height = 17
-      Caption = 'Show data'
+    object NAccelLabeledEdit: TLabeledEdit
+      Left = 120
+      Top = 33
+      Width = 33
+      Height = 21
+      Hint = 'Filtrage Alpha/Beta pneumatique CAS.'
+      EditLabel.Width = 46
+      EditLabel.Height = 15
+      EditLabel.Caption = 'N Accelz'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 1
+      Text = '38'
+    end
+    object OutlierLabeledEdit: TLabeledEdit
+      Left = 200
+      Top = 33
+      Width = 33
+      Height = 21
+      Hint = 'Filtrage Alpha/Beta barom'#233'trique statique.'
+      EditLabel.Width = 36
+      EditLabel.Height = 15
+      EditLabel.Caption = 'Outlier'
+      ParentShowHint = False
+      ShowHint = True
       TabOrder = 2
+      Text = '10.0'
     end
-    object DistCdGxLabeledEdit: TLabeledEdit
-      Left = 224
+    object NMinLabeledEdit: TLabeledEdit
+      Left = 256
       Top = 33
-      Width = 73
-      Height = 23
-      EditLabel.Width = 49
+      Width = 33
+      Height = 21
+      Hint = 'Filtrage Alpha/Beta module n et roll.'
+      EditLabel.Width = 21
       EditLabel.Height = 15
-      EditLabel.Cursor = crAppStart
-      EditLabel.Caption = 'DistxCdG'
+      EditLabel.Caption = 'Min'
+      ParentShowHint = False
+      ShowHint = True
       TabOrder = 3
-      Text = '0'
+      Text = '-4.0'
     end
-    object DistCdGzLabeledEdit: TLabeledEdit
-      Left = 320
+    object NMaxLabeledEdit: TLabeledEdit
+      Left = 312
       Top = 33
-      Width = 73
-      Height = 23
-      EditLabel.Width = 48
+      Width = 33
+      Height = 21
+      Hint = 'Filtrage Alpha/Beta module n et roll.'
+      EditLabel.Width = 23
       EditLabel.Height = 15
-      EditLabel.Cursor = crAppStart
-      EditLabel.Caption = 'DistzCdG'
+      EditLabel.Caption = 'Max'
+      ParentShowHint = False
+      ShowHint = True
       TabOrder = 4
-      Text = '1.69'
+      Text = '6.0'
     end
-    object FifoDepthLabeledEdit: TLabeledEdit
-      Left = 432
-      Top = 33
-      Width = 57
-      Height = 23
-      EditLabel.Width = 55
+    object NAccelxLabeledEdit: TLabeledEdit
+      Left = 120
+      Top = 73
+      Width = 33
+      Height = 21
+      Hint = 'Filtrage Alpha/Beta pneumatique CAS.'
+      EditLabel.Width = 47
       EditLabel.Height = 15
-      EditLabel.Caption = 'Fifo Depth'
+      EditLabel.Caption = 'N Accelx'
+      ParentShowHint = False
+      ShowHint = True
       TabOrder = 5
-      Text = '7'
+      Text = '4000'
     end
+    object LabeledEdit2: TLabeledEdit
+      Left = 200
+      Top = 73
+      Width = 33
+      Height = 21
+      Hint = 'Filtrage Alpha/Beta barom'#233'trique statique.'
+      EditLabel.Width = 36
+      EditLabel.Height = 15
+      EditLabel.Caption = 'Outlier'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 6
+      Text = '10.0'
+    end
+    object LabeledEdit3: TLabeledEdit
+      Left = 256
+      Top = 73
+      Width = 33
+      Height = 21
+      Hint = 'Filtrage Alpha/Beta module n et roll.'
+      EditLabel.Width = 21
+      EditLabel.Height = 15
+      EditLabel.Caption = 'Min'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 7
+      Text = '-4.0'
+    end
+    object LabeledEdit4: TLabeledEdit
+      Left = 312
+      Top = 73
+      Width = 33
+      Height = 21
+      Hint = 'Filtrage Alpha/Beta module n et roll.'
+      EditLabel.Width = 23
+      EditLabel.Height = 15
+      EditLabel.Caption = 'Max'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 8
+      Text = '6.0'
+    end
+  end
+  object ShowDataCheckBox: TCheckBox
+    Left = 40
+    Top = 219
+    Width = 97
+    Height = 17
+    Caption = 'ShowData'
+    TabOrder = 2
   end
 end

@@ -124,10 +124,6 @@
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="UFifoSingle.pas"/>
-        <DCCReference Include="UFiltrages_AB.pas">
-            <Form>Form3</Form>
-            <FormType>dfm</FormType>
-        </DCCReference>
         <DCCReference Include="UBatch.pas">
             <Form>BatchForm</Form>
             <FormType>dfm</FormType>
