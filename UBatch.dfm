@@ -49,6 +49,20 @@ object BatchForm: TBatchForm
       ParentFont = False
       Visible = False
     end
+    object FlightTimeLabel: TLabel
+      Left = 398
+      Top = 163
+      Width = 74
+      Height = 15
+      Caption = 'FlightTime (h)'
+    end
+    object RLabel: TLabel
+      Left = 398
+      Top = 184
+      Width = 7
+      Height = 15
+      Caption = 'R'
+    end
     object DirectoryListBox1: TDirectoryListBox
       Left = 24
       Top = 40

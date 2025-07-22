@@ -7,7 +7,18 @@ uses
   System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtDlgs, Vcl.StdCtrls, Vcl.Mask,
   Vcl.ExtCtrls, Vcl.ComCtrls, VCLTee.TeEngine, VCLTee.Series, VCLTee.TeeProcs,
-  VCLTee.Chart, Vcl.Grids, Math, Vcl.Menus;
+  VCLTee.Chart, Vcl.Grids, Vcl.Menus, Math;
+
+const
+  APP_COPYRIGHT = '© 2025 GFM & JLD. Copyright. Tous droits réservés.';
+  APP_VERSION = 'Version 1.0.0.0';
+  Gravity = 9.807;
+  TailleMessage = 22; // taille d'un message complet (temps+Accel)
+  Taille_Spectrum = 31; // Quantification of loadfactor
+
+type
+  Table_Spectrum = Array [0 .. Taille_Spectrum] of Integer;
+  Table_Kossira = Array [0 .. Taille_Spectrum] of Extended;
 
 type
   TMainForm = class(TForm)
@@ -58,11 +69,9 @@ type
     GraphCheckBox: TCheckBox;
     Series3: TFastLineSeries;
     Series6: TFastLineSeries;
-    ParalaxeCheckBox: TCheckBox;
-    FiltrageAB1: TMenuItem;
-    RepereRadioGroup: TRadioGroup;
     Batch1: TMenuItem;
-    CumulCheckBox: TCheckBox;
+    RLabel: TLabel;
+    FlightTimeLabel: TLabel;
     procedure RunButtonClick(Sender: TObject);
     procedure ConfButtonClick(Sender: TObject);
     procedure Open1Click(Sender: TObject);
@@ -103,33 +112,30 @@ type
     Checksum: Byte;
   end;
 
-const
-  APP_COPYRIGHT = '© 2025 GFM & JLD. Copyright. Tous droits réservés.';
-  APP_VERSION = 'Version 1.0.0.0';
-  Gravity = 9.807;
-  TailleMessage = 22; // taille d'un message complet (temps+Accel)
-
 var
   MainForm: TMainForm;
   FileName: String;
   BinaryFile: File;
   // InputFile: TextFile;
   ResultFile: TextFile;
-  Temps, Temps_1, Temps_Cumule, TakeOffTime, LandingTime: Extended;
+  Temps, Temps_1, FlightTime, TakeOffTime, LandingTime: Extended;
   Classes, Occurs: Extended;
-  spectrum: Array [0 .. 31] of Integer;
+  Spectrum: Table_Spectrum;
   Repere: Integer; // 1 for ENU   , -1 for NED
   TimeMsg: TTimeMessage;
   AccMsg: TAccMessage;
   inFlight: Boolean;
   TailleFile: LongInt; // taille du fichier, en octets
+  R: Extended;
+  Function R_Calculation(FlightTime: Extended; Spectrum: Table_Spectrum): Extended;
+
 
 implementation
 
 {$R *.dfm}
 
 // {$R InfoVersion.res}
-uses UConf, UDoc, FilterButterworth, UAPropos,UBatch;
+uses UConfAesa, UDoc, FilterButterworth, UAPropos, UBatch;
 
 Const // [col,ligne]
   Kossira_6000h: Array [0 .. 1, 0 .. 19] of Single = (
@@ -263,9 +269,64 @@ begin
   Result := Byte(Sum and $FF);
 end;
 
+Function R_Calculation(FlightTime: Extended; Spectrum: Table_Spectrum)
+  : Extended;
+Const
+  K = 6.6; // S/N Slope
+  Kossira_Ni: Table_Kossira = (-3.84375, -3.53125, -3.21875, -2.90625, -2.59375,
+    -2.28125, -1.96875, -1.65625, -1.34375, -1.03125, -0.71875, -0.40625,
+    -0.09375, 0.21875, 0.53125, 0.84375, 1.15625, 1.46875, 1.78125, 2.09375,
+    2.40625, 2.71875, 3.03125, 3.34375, 3.65625, 3.96875, 4.28125, 4.59375,
+    4.90625, 5.21875, 5.53125, 5.84375);
+  NiSum = 13915563.42; // Somme de référence KOSSIRA
+
+Var
+  avg_n: Extended; // moyenne des ni (g)
+  Kossiraxocc_normalise: Table_Kossira; // Table kossira
+  Kossiraxocc: Table_Kossira; // Table kossira * occuri
+  Sum_Kossira: Extended;
+  KossiraFlight: Table_Kossira; // Table kossira * occuri
+  KossiraForRcalc: Table_Kossira;
+  sum_KossiraForRcalc: Extended;
+  i: Integer;
+
+begin
+  // Calcul de la moyenne des ni
+  avg_n := 0.0;
+  Sum_Kossira := 0.0;
+  for i := 0 to Taille_Spectrum do
+  begin
+    Kossiraxocc[i] := 0.0;
+    Kossiraxocc_normalise[i] := 0.0;
+    KossiraForRcalc[i] := 0.0;
+  end;
+  for i := 0 to Taille_Spectrum do
+  begin
+    Kossiraxocc[i] := Spectrum[i] * Kossira_Ni[i];
+    avg_n := avg_n + Spectrum[i];
+    Sum_Kossira := Sum_Kossira + Kossiraxocc[i];
+  end;
+  avg_n := Sum_Kossira / avg_n;
+  // Normalisation 6000h
+  for i := 0 to Taille_Spectrum do
+  begin
+    Kossiraxocc_normalise[i] := Spectrum[i] * 6000.0 / FlightTime;
+  end;
+  // Clacul de la table Kossira et KossiraForRcalc
+  sum_KossiraForRcalc := 0;
+  for i := 0 to Taille_Spectrum do
+  begin
+    KossiraFlight[i] := power(Abs(Kossira_Ni[i] - avg_n), K);
+    KossiraForRcalc[i] := Kossiraxocc_normalise[i] * KossiraFlight[i];
+    sum_KossiraForRcalc := sum_KossiraForRcalc + KossiraForRcalc[i];
+  end;
+  // avg_KossiraForRcalc:=avg_KossiraForRcalc/(taille_spectrum+1);
+  Result := NiSum / sum_KossiraForRcalc;
+end;
+
 Procedure TMainForm.ExploitationFichier(Sender: TObject);
 Var
-  i, j, k, col, raw: Integer;
+  i, j, K, col, raw: Integer;
   Count, n, n_1, nq, nq_1, nq_avg, slope, slope_1, minmax, minmax_1: Integer;
   nf, nff, nff_sum, nff_avg: Extended;
   ax, ay, az: Extended;
@@ -278,21 +339,28 @@ Var
   Checksum: Byte;
 
   Procedure inFlight_Determination(dax, ay, az: Extended; Var inFlight: Boolean;
-    Var GroundTime, SensorTime: Extended);
+    Var LandingTime, TakeOffTime: Extended);
+    Var
+    PullUp,Deceleration, PullUpDelay,DecelerationDelay:Extended;
+
   Begin
+    PullUp:=StrToFloat(ConfForm.PullUpLabeledEdit.Text);
+    PullUpDelay:=StrToFloat(ConfForm.PullUpDelayLabeledEdit.Text);
+    Deceleration:=StrToFloat(ConfForm.DecelerationLabeledEdit.Text);
+    DecelerationDelay:=StrToFloat(ConfForm.DecDelayLabeledEdit.Text);
     If Not inFlight then
     begin
-      if (az > 1.3) and ((Temps - GroundTime) > 100) then
+      if (az > PullUp) and ((Temps - LandingTime) > PullUpDelay) then
       begin
         inFlight := True;
         TakeOffTime := Temps;
       end;
     end
-    else if (dax < -0.35) and ((Temps - SensorTime > 100)) then
+    else if (dax < Deceleration) and ((Temps - TakeOffTime > DecelerationDelay)) then
     begin
       inFlight := False;
       LandingTime := Temps;
-      Temps_Cumule:=Temps_Cumule+(LandingTime-TakeOffTime);
+      FlightTime := FlightTime + (LandingTime - TakeOffTime)/3600.0;
     end;
   End;
 
@@ -306,7 +374,7 @@ Var
       Memo3.Lines.Add(Format('%5.3f' + #9 + '%4d', [Temps, n]));
     end;
     // only process data if difference between n and n_1 is larger than 1
-    if (abs(n - n_1) > 1) then
+    if (Abs(n - n_1) > 1) then
     begin
       // low resolution quantification
       nq := trunc((nff - LowG) / QuantumRough);
@@ -409,9 +477,8 @@ begin
       Markov2[j, i] := 0;
     end;
 
-  If not CumulCheckBox.Checked then
-    for i := 0 to 31 do
-      spectrum[i] := 0;
+  for i := 0 to 31 do
+    Spectrum[i] := 0;
   Debut := 0.0;
   Chart1.Axes.Left.Automatic := False;
   Chart1.Axes.Left.Maximum := HighG;
@@ -424,7 +491,7 @@ begin
   // Compute nq_avg
   nff_sum := 0;
   Temps := 0.0;
-  Temps_Cumule := 0.0;
+  FlightTime := 0.0;
   ax_AB := TAlphaBeta.Create(NAccel, deltaT, AccelOutlier, AccelMin, AccelMax);
   az_AB := TAlphaBeta.Create(NAccel, deltaT, AccelOutlier, AccelMin, AccelMax);
   Writeln(ResultFile, FileName);
@@ -432,7 +499,7 @@ begin
   Series2.Title := 'nq';
   Series3.Title := 'Ax';
   Series6.Title := 'Az';
-
+  ax := 0.0;
   // Average for binary file
   RunningLabel.Caption := 'Averaging';
   Application.ProcessMessages;
@@ -492,7 +559,6 @@ begin
           Round((Count * TailleMessage) / (TailleFile) * 100.0);
     end;
   end;
-  Fin := Temps;
   // compute average low resolution nq
   if Count > 0 then
     nq_avg := trunc((nff_sum / Count - LowG) / QuantumRough)
@@ -569,8 +635,6 @@ begin
           Series1.AddXY(Temps, 0);
         if inFlight then
         begin
-          Temps_Cumule := Temps_Cumule + Temps - Temps_1;
-          Temps_1 := Temps;
           Exploite_data;
         end;
       end;
@@ -581,7 +645,7 @@ begin
   ProgressBar1.Position := 100;
   Fin := Temps;
   Writeln(ResultFile, 'StartTime (s) :', Debut:10:3, ' EndTime (s) :', Fin:10:3,
-    ' FlightTime (s) :', Temps_Cumule:10:3);
+    ' FlightTime (s) :', FlightTime:10:3);
   Writeln(ResultFile, ' Classes (g)', #9, 'occurs');
   for i := 0 to 31 do
     for j := 0 to 31 do
@@ -602,18 +666,18 @@ begin
     begin
       for raw := col + 1 to 31 do
         // enumerate matrix lines above diagonal
-        for k := raw to 31 do
+        for K := raw to 31 do
           // add all cells values at and above current cell.
-          Markov2[col, raw] := Markov2[col, raw] + Markov1[col, k];
+          Markov2[col, raw] := Markov2[col, raw] + Markov1[col, K];
     end;
     // sum cells below diagonal
     if (col > 1) then
     begin
       for raw := col - 1 downto 0 do
         // enumerate matrix lines below diagonal
-        for k := raw downto 0 do
+        for K := raw downto 0 do
           // add all cells values at and below current cell.
-          Markov2[col, raw] := Markov2[col, raw] + Markov1[col, k];
+          Markov2[col, raw] := Markov2[col, raw] + Markov1[col, K];
     end;
   end;
   for raw := 0 to 31 do
@@ -623,13 +687,13 @@ begin
     begin
       for col := raw + 1 to 31 do
         if Markov2[col, raw] <> 0 then
-          spectrum[raw] := spectrum[raw] + Markov2[col, raw];
+          Spectrum[raw] := Spectrum[raw] + Markov2[col, raw];
     end
     // sum cells to the left of the diagonal and above nq_avg
     else
       for col := 0 to raw - 1 do
         if Markov2[col, raw] <> 0 then
-          spectrum[raw] := spectrum[raw] + Markov2[col, raw];
+          Spectrum[raw] := Spectrum[raw] + Markov2[col, raw];
   end;
   for i := 0 to 31 do
     for j := 0 to 31 do
@@ -643,19 +707,22 @@ begin
   Memo1.Lines.Add('Class (g)' + #9'Occurences (-)');
   RunningLabel.Caption := 'Kossira';
   Application.ProcessMessages;
+  R := R_Calculation(FlightTime, Spectrum);
   for j := 0 to 31 do
-    if spectrum[j] <> 0 then
+    if Spectrum[j] <> 0 then
     begin
       Classes := ((j + 0.5) * QuantumRough + LowG);
-      Occurs := spectrum[j] * (6000.0 * 3600.0) / (Temps_Cumule);
-      spectrumStringGrid.Cells[1, 32 - j] := IntToStr(spectrum[j]);
+      Occurs := Spectrum[j] * (6000.0) / (FlightTime);
+      spectrumStringGrid.Cells[1, 32 - j] := IntToStr(Spectrum[j]);
       Series5.AddXY(Occurs, Classes);
       Memo1.Lines.Add(Format('%8.2f' + #9 + '%8.0f', [Classes, Occurs]));
-      Writeln(ResultFile, Classes:8:3, ',', spectrum[j]:8);
+      Writeln(ResultFile, Classes:8:3, ',', Spectrum[j]:8);
     end;
   for j := 0 to 19 do
     Series4.AddXY((Kossira_6000h[1, j]), (Kossira_6000h[0, j]));
-
+  FlightTimeLabel.Caption:=Format('Flight time = %5.1f h',[+FlightTime]);
+  RLabel.Caption := Format('R = %8.1f', [R]);
+  Writeln(ResultFile,'R = ',R:5:1);
   { MarcovStringGrid1.Canvas.Pen.Color := clRed;
     MarcovStringGrid1.Canvas.Pen.Width := 2;
     MarcovStringGrid2.Canvas.MoveTo(100, 100);
@@ -689,7 +756,7 @@ begin
   Series4.Clear;
   Series5.Clear;
   Series6.Clear;
-  if RepereRadioGroup.ItemIndex = 0 then
+  if ConfForm.RepereRadioGroup.ItemIndex = 0 then
     Repere := 1
   else
     Repere := -1;
@@ -711,6 +778,8 @@ begin
     else
       exit;
   end;
+      FileNameLabeledEdit.Text := FileName;
+      FileName := Copy(FileName, 0, Length(FileName) - 4);
   AssignFile(ResultFile, FileName + '.res');
   Rewrite(ResultFile);
   Reset(BinaryFile, 1);

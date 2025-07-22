@@ -21,6 +21,7 @@ object MainForm: TMainForm
     Align = alTop
     TabOrder = 0
     VerticalAlignment = taAlignTop
+    ExplicitTop = -6
     DesignSize = (
       1367
       49)
@@ -32,16 +33,30 @@ object MainForm: TMainForm
       Caption = 'nq_avg'
     end
     object RunningLabel: TLabel
-      Left = 992
-      Top = 23
+      Left = 1216
+      Top = 11
       Width = 77
       Height = 15
       Caption = 'Waiting orders'
     end
+    object RLabel: TLabel
+      Left = 984
+      Top = 28
+      Width = 7
+      Height = 15
+      Caption = 'R'
+    end
+    object FlightTimeLabel: TLabel
+      Left = 984
+      Top = 7
+      Width = 74
+      Height = 15
+      Caption = 'FlightTime (h)'
+    end
     object FileNameLabeledEdit: TLabeledEdit
       Left = 4
       Top = 20
-      Width = 362
+      Width = 396
       Height = 23
       EditLabel.Width = 50
       EditLabel.Height = 15
@@ -64,14 +79,14 @@ object MainForm: TMainForm
       OnClick = RunButtonClick
     end
     object ProgressBar1: TProgressBar
-      Left = 384
+      Left = 406
       Top = 26
-      Width = 333
+      Width = 311
       Height = 17
       TabOrder = 2
     end
     object GraphCheckBox: TCheckBox
-      Left = 526
+      Left = 406
       Top = 3
       Width = 59
       Height = 17
@@ -79,52 +94,6 @@ object MainForm: TMainForm
       Checked = True
       State = cbChecked
       TabOrder = 3
-    end
-    object ParalaxeCheckBox: TCheckBox
-      Left = 641
-      Top = 3
-      Width = 76
-      Height = 17
-      Caption = 'Paralaxe'
-      Checked = True
-      State = cbChecked
-      TabOrder = 4
-    end
-    object RepereRadioGroup: TRadioGroup
-      Left = 810
-      Top = 10
-      Width = 123
-      Height = 36
-      Margins.Top = 0
-      Margins.Bottom = 0
-      Anchors = [akTop, akRight]
-      Caption = 'NED or ENU'
-      Columns = 2
-      DefaultHeaderFont = False
-      HeaderFont.Charset = DEFAULT_CHARSET
-      HeaderFont.Color = clWindowText
-      HeaderFont.Height = 10
-      HeaderFont.Name = 'Arial'
-      HeaderFont.Pitch = fpFixed
-      HeaderFont.Style = []
-      HeaderFont.Quality = fqDraft
-      ItemIndex = 1
-      Items.Strings = (
-        'NED'
-        'ENU')
-      ShowFrame = False
-      TabOrder = 5
-      StyleName = 'Windows'
-    end
-    object CumulCheckBox: TCheckBox
-      Left = 384
-      Top = 3
-      Width = 113
-      Height = 17
-      Caption = 'Occurs'#39' Cumul '
-      Checked = True
-      State = cbChecked
-      TabOrder = 6
     end
   end
   object PageControl1: TPageControl
@@ -381,8 +350,8 @@ object MainForm: TMainForm
     Top = 72
   end
   object MainMenu1: TMainMenu
-    Left = 672
-    Top = 392
+    Left = 1200
+    Top = 88
     object Fichier1: TMenuItem
       Caption = 'File'
       object Open1: TMenuItem
@@ -425,9 +394,6 @@ object MainForm: TMainForm
       object Run3: TMenuItem
         Caption = 'Configuration'
         OnClick = Run3Click
-      end
-      object FiltrageAB1: TMenuItem
-        Caption = 'Filtrage_AB'
       end
       object Batch1: TMenuItem
         Caption = 'Batch'
