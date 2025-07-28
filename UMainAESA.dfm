@@ -21,7 +21,6 @@ object MainForm: TMainForm
     Align = alTop
     TabOrder = 0
     VerticalAlignment = taAlignTop
-    ExplicitTop = -6
     DesignSize = (
       1367
       49)

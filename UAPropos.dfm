@@ -3,8 +3,8 @@ object OKRightDlg: TOKRightDlg
   Top = 108
   BorderStyle = bsDialog
   Caption = 'A propos'
-  ClientHeight = 170
-  ClientWidth = 348
+  ClientHeight = 79
+  ClientWidth = 277
   Color = clBtnFace
   ParentFont = True
   Position = poScreenCenter
@@ -13,7 +13,7 @@ object OKRightDlg: TOKRightDlg
     Left = 8
     Top = 8
     Width = 281
-    Height = 65
+    Height = 129
     Shape = bsFrame
   end
   object OKBtn: TButton
@@ -28,15 +28,19 @@ object OKRightDlg: TOKRightDlg
     OnClick = OKBtnClick
   end
   object Memo2: TMemo
-    Left = 16
-    Top = 16
-    Width = 265
-    Height = 41
+    Left = 0
+    Top = 0
+    Width = 277
+    Height = 79
+    Align = alClient
     Lines.Strings = (
       'This application is design by J.L. Derouineau '
       'and '
       'implemented with the collaboration of GF '
       'Mesnil')
     TabOrder = 1
+    ExplicitLeft = 8
+    ExplicitWidth = 348
+    ExplicitHeight = 170
   end
 end

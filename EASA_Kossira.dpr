@@ -6,7 +6,8 @@ uses
   UBatch in 'UBatch.pas' {BatchForm},
   UConfAesa in 'UConfAesa.pas' {ConfForm},
   UDoc in 'UDoc.pas' {DocForm},
-  UMainAESA in 'UMainAESA.pas' {MainForm};
+  UMainAESA in 'UMainAESA.pas' {MainForm},
+  UFFT in 'UFFT.pas';
 
 {$R *.res}
 

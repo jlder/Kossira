@@ -7,7 +7,7 @@ uses
   System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtDlgs, Vcl.StdCtrls, Vcl.Mask,
   Vcl.ExtCtrls, Vcl.ComCtrls, VCLTee.TeEngine, VCLTee.Series, VCLTee.TeeProcs,
-  VCLTee.Chart, Vcl.Grids, Vcl.Menus, Math;
+  VCLTee.Chart, Vcl.Grids, Vcl.Menus, Math,UFFT;
 
 const
   APP_COPYRIGHT = '© 2025 GFM & JLD. Copyright. Tous droits réservés.';
@@ -15,6 +15,7 @@ const
   Gravity = 9.807;
   TailleMessage = 22; // taille d'un message complet (temps+Accel)
   Taille_Spectrum = 31; // Quantification of loadfactor
+  WindowSize = 256; // Taille du buffer circulaire
 
 type
   Table_Spectrum = Array [0 .. Taille_Spectrum] of Integer;
@@ -112,6 +113,13 @@ type
     Checksum: Byte;
   end;
 
+type
+  TCircularBuffer = record
+    Data: array [0 .. WindowSize - 1] of Extended;
+    Index: Integer;
+    Count: Integer;
+  end;
+
 var
   MainForm: TMainForm;
   FileName: String;
@@ -126,16 +134,19 @@ var
   AccMsg: TAccMessage;
   inFlight: Boolean;
   TailleFile: LongInt; // taille du fichier, en octets
+  Compteur_FFT:Integer;
   R: Extended;
-  Function R_Calculation(FlightTime: Extended; Spectrum: Table_Spectrum): Extended;
+  Signal: array[0..WindowSize-1] of TComplex;
 
+  Function R_Calculation(FlightTime: Extended; Spectrum: Table_Spectrum)
+  : Extended;
 
 implementation
 
 {$R *.dfm}
 
 // {$R InfoVersion.res}
-uses UConfAesa, UDoc, FilterButterworth, UAPropos, UBatch;
+uses UConfAesa, UDoc, UAPropos, UBatch;
 
 Const // [col,ligne]
   Kossira_6000h: Array [0 .. 1, 0 .. 19] of Single = (
@@ -148,6 +159,67 @@ Const // [col,ligne]
     90487.1326, 32844.8336, 9594.8, 5780.6417, 2367.2902, 140.6707, 5.1591)
     // col 1
     );
+
+procedure InitBuffer(var Buf: TCircularBuffer);
+var
+  i: Integer;
+begin
+  for i := 0 to WindowSize - 1 do
+    Buf.Data[i] := 0;
+  Buf.Index := 0;
+  Buf.Count := 0;
+end;
+
+procedure AddSample(var Buf: TCircularBuffer; Sample: Double);
+begin
+  Buf.Data[Buf.Index] := Sample;
+  Buf.Index := (Buf.Index + 1) mod WindowSize;
+  if Buf.Count < WindowSize then
+    Inc(Buf.Count);
+end;
+
+function ComputeStdDev(const Buf: TCircularBuffer): Double;
+var
+  Sum, Sum2: Double;
+  i, N: Integer;
+  amax:Extended;
+begin
+  Result := 0;
+  N := Buf.Count;
+  if N < WindowSize then
+    Exit; // Pas assez de données pour calculer
+
+  Sum := 0;
+  Sum2 := 0;
+  amax:=0;
+  for i := 0 to N - 1 do
+  begin
+    Sum := Sum + Buf.Data[i];
+    Sum2 := Sum2 + Sqr(Buf.Data[i]);
+  Signal[i].Re:=Buf.Data[i];
+  Signal[i].Im:=0.0;
+  end;
+  Result := Sqrt((Sum2 - Sqr(Sum) / N) / (N - 1));
+  Compteur_FFT:=Compteur_FFT+1;
+  if (Compteur_FFT mod 32 =0) and (temps>40420) and (temps<40460) then
+    begin
+    MainForm.Series3.Clear;
+    FFT(Signal,False);
+    MainForm.Chart1.BottomAxis.Minimum:=0;
+    MainForm.Chart1.BottomAxis.Maximum:=10;
+    MainForm.Chart1.LeftAxis.Minimum:=0;
+    MainForm.Chart1.LeftAxis.Maximum:=10;
+    //MainForm.Chart1.LeftAxis.Automatic:=True;
+    if temps>40425 then for i := 1 to N div 2 do
+      begin
+      MainForm.Series3.Addxy(20*i/N,amplitude[i]);
+      if amplitude[i]>amax then amax:=amplitude[i];
+      end;
+    Mainform.Label1.Caption:=FloatToStr(amax);
+    Application.ProcessMessages;
+    sleep(3000);
+    end;
+end;
 
 procedure TMainForm.Batch1Click(Sender: TObject);
 begin
@@ -207,7 +279,7 @@ begin
     FileNameLabeledEdit.Text := FileName;
   end
   else
-    exit;
+    Exit;
 end;
 
 procedure TMainForm.SaveClick(Sender: TObject);
@@ -327,7 +399,7 @@ end;
 Procedure TMainForm.ExploitationFichier(Sender: TObject);
 Var
   i, j, K, col, raw: Integer;
-  Count, n, n_1, nq, nq_1, nq_avg, slope, slope_1, minmax, minmax_1: Integer;
+  Count, N, n_1, nq, nq_1, nq_avg, slope, slope_1, minmax, minmax_1: Integer;
   nf, nff, nff_sum, nff_avg: Extended;
   ax, ay, az: Extended;
   Markov1, Markov2: Array [0 .. 31, 0 .. 31] of Integer;
@@ -337,44 +409,51 @@ Var
   AccelOutlier, AccelMin, AccelMax: Extended;
   Buffer: array [0 .. 9] of Byte; // 10 octets pour chaque message
   Checksum: Byte;
+  Buf: TCircularBuffer;
+  NewSample, StdDevValue: Extended;
+   Vx:Extended;
+   VxOffset:Extended;
 
   Procedure inFlight_Determination(dax, ay, az: Extended; Var inFlight: Boolean;
     Var LandingTime, TakeOffTime: Extended);
-    Var
-    PullUp,Deceleration, PullUpDelay,DecelerationDelay:Extended;
+  Var
+    PullUp, Deceleration, PullUpDelay, DecelerationDelay: Extended;
 
   Begin
-    PullUp:=StrToFloat(ConfForm.PullUpLabeledEdit.Text);
-    PullUpDelay:=StrToFloat(ConfForm.PullUpDelayLabeledEdit.Text);
-    Deceleration:=StrToFloat(ConfForm.DecelerationLabeledEdit.Text);
-    DecelerationDelay:=StrToFloat(ConfForm.DecDelayLabeledEdit.Text);
+    PullUp := StrToFloat(ConfForm.PullUpLabeledEdit.Text);
+    PullUpDelay := StrToFloat(ConfForm.PullUpDelayLabeledEdit.Text);
+    Deceleration := StrToFloat(ConfForm.DecelerationLabeledEdit.Text);
+    DecelerationDelay := StrToFloat(ConfForm.DecDelayLabeledEdit.Text);
     If Not inFlight then
     begin
       if (az > PullUp) and ((Temps - LandingTime) > PullUpDelay) then
       begin
         inFlight := True;
         TakeOffTime := Temps;
+        Writeln(ResultFile, 'TakeOff :', TakeOffTime:10:0);
       end;
     end
-    else if (dax < Deceleration) and ((Temps - TakeOffTime > DecelerationDelay)) then
+    else if (dax < Deceleration) and ((Temps - TakeOffTime > DecelerationDelay))
+    then
     begin
       inFlight := False;
       LandingTime := Temps;
-      FlightTime := FlightTime + (LandingTime - TakeOffTime)/3600.0;
+      FlightTime := FlightTime + (LandingTime - TakeOffTime) / 3600.0;
+      Writeln(ResultFile, 'Landing :', LandingTime:10:0);
     end;
   End;
 
   Procedure Exploite_data;
   begin
-    n := trunc((nff - LowG) / Quantum); // n load factor coded on 10 bits
+    N := trunc((nff - LowG) / Quantum); // n load factor coded on 10 bits
     if ConfForm.ShowDataCheckBox.Checked then
     begin
       Memo4.Lines.Add(Format('%5.3f' + #9 + '%8.2f', [Temps, nf]));
       // high resolution quantification
-      Memo3.Lines.Add(Format('%5.3f' + #9 + '%4d', [Temps, n]));
+      Memo3.Lines.Add(Format('%5.3f' + #9 + '%4d', [Temps, N]));
     end;
     // only process data if difference between n and n_1 is larger than 1
-    if (Abs(n - n_1) > 1) then
+    if (Abs(N - n_1) > 1) then
     begin
       // low resolution quantification
       nq := trunc((nff - LowG) / QuantumRough);
@@ -399,7 +478,7 @@ Var
           // Display n and nq for min/max
           // Series1.AddXY(Temps, n * UnderSample div ClassNumbers);
           if GraphCheckBox.Checked then
-            Series2.AddXY(Temps, nq);
+            //Series2.AddXY(Temps, nq);
 
           // keep track of last minmax
           minmax_1 := minmax;
@@ -410,7 +489,7 @@ Var
       end;
     end;
     // keep track of last n
-    n_1 := n;
+    n_1 := N;
   end;
 
 begin
@@ -499,7 +578,11 @@ begin
   Series2.Title := 'nq';
   Series3.Title := 'Ax';
   Series6.Title := 'Az';
-  ax := 0.0;
+  InitBuffer(Buf);
+  Vx:=0.0;
+  VxOffset:=0.0;
+  Compteur_FFT:=0;
+
   // Average for binary file
   RunningLabel.Caption := 'Averaging';
   Application.ProcessMessages;
@@ -545,14 +628,15 @@ begin
           nff := -az * Repere;
           // sum nff values
           nff_sum := nff_sum + nff;
+
           Count := Count + 1;
         end;
       end;
       // Graph nf for entire file
       if GraphCheckBox.Checked then
       begin
-        Series3.AddXY(Temps, az_AB.ABfilt);
-        Series6.AddXY(Temps, nff);
+        //Series3.AddXY(Temps, az_AB.ABPrim);
+        //Series6.AddXY(Temps, nff);
       end;
       if Count mod 1000 = 0 then
         ProgressBar1.Position :=
@@ -565,12 +649,10 @@ begin
   else
   begin
     Application.MessageBox('Aucune mesure valide', 'ATTENTION', IdOk);
-    exit;
+    Exit;
   end;
   Label1.Caption := Format('nq_avg = %2d', [nq_avg]);
   LigneAGrossir := nq_avg;
-  Series3.Clear;
-  Series6.Clear;
   Fin := Temps;
   // Fin du calcul de la moyenne
 
@@ -578,6 +660,10 @@ begin
   RunningLabel.Caption := 'Occuring';
   ProgressBar1.Position := 0;
   Application.ProcessMessages;
+  //sleep(10000);
+
+  Series3.Clear;
+  Series6.Clear;
   inFlight := False;
   // reset file to begining
   Reset(BinaryFile, 1);
@@ -617,8 +703,13 @@ begin
           ax_AB.ABupdate(deltaT, ax);
           az_AB.ABupdate(deltaT, -az * Repere);
           nff := -az * Repere;
+          AddSample(Buf, az_AB.ABfilt);
+          StdDevValue := ComputeStdDev(Buf);
           inFlight_Determination(ax - ax_AB.ABfilt, ay, az_AB.ABfilt, inFlight,
             TakeOffTime, LandingTime);
+          if StdDevValue<0.1 then VxOffset:=ax_AB.ABFilt;
+          if az_AB.ABfilt>1.1 then  Vx:=Vx-(ax-VxOffset)*Gravity*deltat;
+
           Count := Count + 1;
         end;
       end;
@@ -626,13 +717,14 @@ begin
       begin
         if GraphCheckBox.Checked then
         begin
-          Series6.AddXY(Temps, nff);
-          Series3.AddXY(Temps, ax);
+          //Series6.AddXY(Temps, nff);
+          //Series3.AddXY(Temps, StdDevValue);
+          //Series1.Addxy(Temps,Vx/10.0);
         end;
-        if inFlight then
+        {if inFlight then
           Series1.AddXY(Temps, 1)
         else
-          Series1.AddXY(Temps, 0);
+          Series1.AddXY(Temps, 0);}
         if inFlight then
         begin
           Exploite_data;
@@ -720,9 +812,9 @@ begin
     end;
   for j := 0 to 19 do
     Series4.AddXY((Kossira_6000h[1, j]), (Kossira_6000h[0, j]));
-  FlightTimeLabel.Caption:=Format('Flight time = %5.1f h',[+FlightTime]);
+  FlightTimeLabel.Caption := Format('Flight time = %5.1f h', [+FlightTime]);
   RLabel.Caption := Format('R = %8.1f', [R]);
-  Writeln(ResultFile,'R = ',R:5:1);
+  Writeln(ResultFile, 'R = ', R:5:1);
   { MarcovStringGrid1.Canvas.Pen.Color := clRed;
     MarcovStringGrid1.Canvas.Pen.Width := 2;
     MarcovStringGrid2.Canvas.MoveTo(100, 100);
@@ -776,10 +868,10 @@ begin
       FileNameLabeledEdit.Text := FileName;
     end
     else
-      exit;
+      Exit;
   end;
-      FileNameLabeledEdit.Text := FileName;
-      FileName := Copy(FileName, 0, Length(FileName) - 4);
+  FileNameLabeledEdit.Text := FileName;
+  FileName := Copy(FileName, 0, Length(FileName) - 4);
   AssignFile(ResultFile, FileName + '.res');
   Rewrite(ResultFile);
   Reset(BinaryFile, 1);

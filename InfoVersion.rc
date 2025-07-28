@@ -10,12 +10,9 @@ FILETYPE 0x1
     {
       VALUE "CompanyName", "GFM&JLD"
       VALUE "FileDescription", "Easa_Kossira.exe  "
-
       VALUE "FileVersion", "1.0.0.0"
       VALUE "LegalCopyright", "© 2025 GFM&JLD. Copyright. Tous droits réservés.  "
-
       VALUE "ProductName", "  Kossira  "
-
       VALUE "ProductVersion", "1.0.0.0"
     }
   }
