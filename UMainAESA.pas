@@ -7,7 +7,7 @@ uses
   System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtDlgs, Vcl.StdCtrls, Vcl.Mask,
   Vcl.ExtCtrls, Vcl.ComCtrls, VCLTee.TeEngine, VCLTee.Series, VCLTee.TeeProcs,
-  VCLTee.Chart, Vcl.Grids, Vcl.Menus, Math,UFFT;
+  VCLTee.Chart, Vcl.Grids, Vcl.Menus, Math, UFFT, UButterworth;
 
 const
   APP_COPYRIGHT = '© 2025 GFM & JLD. Copyright. Tous droits réservés.';
@@ -15,7 +15,7 @@ const
   Gravity = 9.807;
   TailleMessage = 22; // taille d'un message complet (temps+Accel)
   Taille_Spectrum = 31; // Quantification of loadfactor
-  WindowSize = 256; // Taille du buffer circulaire
+  WindowSize = 128; // Taille du buffer circulaire
 
 type
   Table_Spectrum = Array [0 .. Taille_Spectrum] of Integer;
@@ -34,7 +34,6 @@ type
     Memo3: TMemo;
     Memo4: TMemo;
     Chart1: TChart;
-    Series1: TPointSeries;
     Series2: TPointSeries;
     ProgressBar1: TProgressBar;
     Markov1TabSheet: TTabSheet;
@@ -73,6 +72,9 @@ type
     Batch1: TMenuItem;
     RLabel: TLabel;
     FlightTimeLabel: TLabel;
+    Label2: TLabel;
+    Series1: TLineSeries;
+    FFTCheckBox: TCheckBox;
     procedure RunButtonClick(Sender: TObject);
     procedure ConfButtonClick(Sender: TObject);
     procedure Open1Click(Sender: TObject);
@@ -132,13 +134,17 @@ var
   Repere: Integer; // 1 for ENU   , -1 for NED
   TimeMsg: TTimeMessage;
   AccMsg: TAccMessage;
-  inFlight: Boolean;
+  OnGround, Taxing, inFlight, Touching: Boolean;
   TailleFile: LongInt; // taille du fichier, en octets
-  Compteur_FFT:Integer;
+  Compteur_FFT: Integer;
   R: Extended;
-  Signal: array[0..WindowSize-1] of TComplex;
+  Signal: array [0 .. WindowSize - 1] of TComplex;
 
-  Function R_Calculation(FlightTime: Extended; Spectrum: Table_Spectrum)
+var
+  HPBuf: THighPassFilter;
+  nfh: Extended;
+
+Function R_Calculation(FlightTime: Extended; Spectrum: Table_Spectrum)
   : Extended;
 
 implementation
@@ -182,7 +188,7 @@ function ComputeStdDev(const Buf: TCircularBuffer): Double;
 var
   Sum, Sum2: Double;
   i, N: Integer;
-  amax:Extended;
+  amax1, amax2: Extended;
 begin
   Result := 0;
   N := Buf.Count;
@@ -191,34 +197,45 @@ begin
 
   Sum := 0;
   Sum2 := 0;
-  amax:=0;
+  amax1 := 0;
+  amax2 := 0;
   for i := 0 to N - 1 do
   begin
     Sum := Sum + Buf.Data[i];
     Sum2 := Sum2 + Sqr(Buf.Data[i]);
-  Signal[i].Re:=Buf.Data[i];
-  Signal[i].Im:=0.0;
+    Signal[i].Re := Buf.Data[i];
+    Signal[i].Im := 0.0;
   end;
   Result := Sqrt((Sum2 - Sqr(Sum) / N) / (N - 1));
-  Compteur_FFT:=Compteur_FFT+1;
-  if (Compteur_FFT mod 32 =0) and (temps>40420) and (temps<40460) then
+  if MainForm.FFTCheckBox.Checked then
+  begin
+    Compteur_FFT := Compteur_FFT + 1;
+    if (Compteur_FFT mod 16 = 0) then
     begin
-    MainForm.Series3.Clear;
-    FFT(Signal,False);
-    MainForm.Chart1.BottomAxis.Minimum:=0;
-    MainForm.Chart1.BottomAxis.Maximum:=10;
-    MainForm.Chart1.LeftAxis.Minimum:=0;
-    MainForm.Chart1.LeftAxis.Maximum:=10;
-    //MainForm.Chart1.LeftAxis.Automatic:=True;
-    if temps>40425 then for i := 1 to N div 2 do
+      MainForm.Series3.Clear;
+      FFT(Signal, False);
+      MainForm.Chart1.BottomAxis.Minimum := 0;
+      MainForm.Chart1.BottomAxis.Maximum := 10;
+      MainForm.Chart1.LeftAxis.Minimum := 0;
+      MainForm.Chart1.LeftAxis.Maximum := 10;
+      // MainForm.Chart1.LeftAxis.Automatic:=True;
+      for i := 1 to N div 2 do
       begin
-      MainForm.Series3.Addxy(20*i/N,amplitude[i]);
-      if amplitude[i]>amax then amax:=amplitude[i];
+        MainForm.Series3.Addxy(20 * i / N, amplitude[i]);
+        if (i <= 3 * N div 20) and (amplitude[i] > amax1) then
+          amax1 := amplitude[i];
+        if (i > 3 * N div 20) and (amplitude[i] > amax2) then
+          amax2 := amplitude[i];
       end;
-    Mainform.Label1.Caption:=FloatToStr(amax);
-    Application.ProcessMessages;
-    sleep(3000);
+      MainForm.Label1.Caption := FloatToStr(amax1);
+      MainForm.Label2.Caption := FloatToStr(amax2);
+      MainForm.FlightTimeLabel.Caption :=
+        Format('Flight time : %10.2f s', [Temps]);
+      Writeln(ResultFile, Temps:10:2, ',', amax1:5:3, ',', amax2:5:2);
+      Application.ProcessMessages;
+      // sleep(3000);
     end;
+  end;
 end;
 
 procedure TMainForm.Batch1Click(Sender: TObject);
@@ -411,38 +428,75 @@ Var
   Checksum: Byte;
   Buf: TCircularBuffer;
   NewSample, StdDevValue: Extended;
-   Vx:Extended;
-   VxOffset:Extended;
-
-  Procedure inFlight_Determination(dax, ay, az: Extended; Var inFlight: Boolean;
+  Vx: Extended;
+  VxOffset: Extended;
+  (*
+    Procedure inFlight_Determination(dax, ay, az: Extended; Var inFlight: Boolean;
     Var LandingTime, TakeOffTime: Extended);
-  Var
+    Var
     PullUp, Deceleration, PullUpDelay, DecelerationDelay: Extended;
 
-  Begin
+    Begin
     PullUp := StrToFloat(ConfForm.PullUpLabeledEdit.Text);
     PullUpDelay := StrToFloat(ConfForm.PullUpDelayLabeledEdit.Text);
     Deceleration := StrToFloat(ConfForm.DecelerationLabeledEdit.Text);
     DecelerationDelay := StrToFloat(ConfForm.DecDelayLabeledEdit.Text);
     If Not inFlight then
     begin
-      if (az > PullUp) and ((Temps - LandingTime) > PullUpDelay) then
-      begin
-        inFlight := True;
-        TakeOffTime := Temps;
-        Writeln(ResultFile, 'TakeOff :', TakeOffTime:10:0);
-      end;
+    if (az > PullUp) and ((Temps - LandingTime) > PullUpDelay) then
+    begin
+    inFlight := True;
+    TakeOffTime := Temps;
+    Writeln(ResultFile, 'TakeOff :', TakeOffTime:10:0);
+    end;
     end
     else if (dax < Deceleration) and ((Temps - TakeOffTime > DecelerationDelay))
     then
     begin
-      inFlight := False;
+    inFlight := False;
+    LandingTime := Temps;
+    FlightTime := FlightTime + (LandingTime - TakeOffTime) / 3600.0;
+    Writeln(ResultFile, 'Landing :', LandingTime:10:0);
+    end;
+    End; *)
+  Procedure inFlight_Determination(StdDevValue, ay, nfh: Extended;
+    Var OnGround, Taxing, inFlight, Touching: Boolean;
+    Var LandingTime, TakeOffTime: Extended);
+  Var
+    PullUp, Deceleration, PullUpDelay, DecelerationDelay: Extended;
+  begin
+    PullUp := StrToFloat(ConfForm.PullUpLabeledEdit.Text);
+    PullUpDelay := StrToFloat(ConfForm.PullUpDelayLabeledEdit.Text);
+    Deceleration := StrToFloat(ConfForm.DecelerationLabeledEdit.Text);
+    DecelerationDelay := StrToFloat(ConfForm.DecDelayLabeledEdit.Text);
+    if OnGround and (StdDevValue > Deceleration) and (nfh > PullUp) and
+      (Temps - LandingTime > DecelerationDelay) then
+      Taxing := True;
+    If Taxing and not inFlight and (nfh < PullUp) then
+    begin
+      TakeOffTime := Temps;
+      inFlight := True;
+      Taxing := False;
+      OnGround := False;
+      Writeln(ResultFile, 'TakeOff :', TakeOffTime:10:0);
+    end;
+    if inFlight and (StdDevValue > Deceleration) and (nfh > PullUp) and
+      (Temps - TakeOffTime > PullUpDelay) then
+    begin
       LandingTime := Temps;
+      Touching := True;
+      inFlight := False;
       FlightTime := FlightTime + (LandingTime - TakeOffTime) / 3600.0;
       Writeln(ResultFile, 'Landing :', LandingTime:10:0);
     end;
-  End;
+    if not inFlight and Touching and (StdDevValue < Deceleration / 2.0) and
+      (nfh < PullUp / 5.0) then
+    begin
+      OnGround := True;
+      Touching := False;
+    end;
 
+  end;
   Procedure Exploite_data;
   begin
     N := trunc((nff - LowG) / Quantum); // n load factor coded on 10 bits
@@ -478,10 +532,10 @@ Var
           // Display n and nq for min/max
           // Series1.AddXY(Temps, n * UnderSample div ClassNumbers);
           if GraphCheckBox.Checked then
-            //Series2.AddXY(Temps, nq);
+            // Series2.AddXY(Temps, nq);
 
-          // keep track of last minmax
-          minmax_1 := minmax;
+            // keep track of last minmax
+            minmax_1 := minmax;
         end;
         // keep track of last slope and nq
         slope_1 := slope;
@@ -579,9 +633,14 @@ begin
   Series3.Title := 'Ax';
   Series6.Title := 'Az';
   InitBuffer(Buf);
-  Vx:=0.0;
-  VxOffset:=0.0;
-  Compteur_FFT:=0;
+  Vx := 0.0;
+  VxOffset := 0.0;
+  Compteur_FFT := 0;
+  // Initialiser HPBuf à zéro avant le début du traitement
+  HPBuf.x1 := 0;
+  HPBuf.x2 := 0;
+  HPBuf.y1 := 0;
+  HPBuf.y2 := 0;
 
   // Average for binary file
   RunningLabel.Caption := 'Averaging';
@@ -635,8 +694,8 @@ begin
       // Graph nf for entire file
       if GraphCheckBox.Checked then
       begin
-        //Series3.AddXY(Temps, az_AB.ABPrim);
-        //Series6.AddXY(Temps, nff);
+        // Series3.AddXY(Temps, az_AB.ABPrim);
+        // Series6.AddXY(Temps, nff);
       end;
       if Count mod 1000 = 0 then
         ProgressBar1.Position :=
@@ -660,11 +719,14 @@ begin
   RunningLabel.Caption := 'Occuring';
   ProgressBar1.Position := 0;
   Application.ProcessMessages;
-  //sleep(10000);
+  // sleep(10000);
 
   Series3.Clear;
   Series6.Clear;
+  OnGround := True;
+  Taxing := False;
   inFlight := False;
+  Touching := False;
   // reset file to begining
   Reset(BinaryFile, 1);
   While Not EoF(BinaryFile) do
@@ -700,31 +762,34 @@ begin
           ax := SmallInt((AccMsg.Ax_H shl 8) or AccMsg.Ax_L) / 2048.0;
           ay := SmallInt((AccMsg.Ay_H shl 8) or AccMsg.Ay_L) / 2048.0;
           az := SmallInt((AccMsg.Az_H shl 8) or AccMsg.Az_L) / 2048.0;
-          ax_AB.ABupdate(deltaT, ax);
+          // ax_AB.ABupdate(deltaT, ax);
           az_AB.ABupdate(deltaT, -az * Repere);
           nff := -az * Repere;
           AddSample(Buf, az_AB.ABfilt);
           StdDevValue := ComputeStdDev(Buf);
-          inFlight_Determination(ax - ax_AB.ABfilt, ay, az_AB.ABfilt, inFlight,
-            TakeOffTime, LandingTime);
-          if StdDevValue<0.1 then VxOffset:=ax_AB.ABFilt;
-          if az_AB.ABfilt>1.1 then  Vx:=Vx-(ax-VxOffset)*Gravity*deltat;
+          // inFlight_Determination(ax - ax_AB.ABfilt, ay, az_AB.ABfilt, inFlight,
+          // TakeOffTime, LandingTime);
+          // Butterworth high pass
+          nfh := Abs(HighPass_Filter(HPBuf, nff));
+          ax_AB.ABupdate(deltaT, nfh);
 
+          inFlight_Determination(StdDevValue, ay, ax_AB.ABfilt, OnGround,
+            Taxing, inFlight, Touching, TakeOffTime, LandingTime);
           Count := Count + 1;
         end;
       end;
       if (nff >= LowG) and (nff <= HighG) then
       begin
-        if GraphCheckBox.Checked then
+        if GraphCheckBox.Checked and   Not MainForm.FFTCheckBox.Checked then
         begin
-          //Series6.AddXY(Temps, nff);
-          //Series3.AddXY(Temps, StdDevValue);
-          //Series1.Addxy(Temps,Vx/10.0);
-        end;
-        {if inFlight then
-          Series1.AddXY(Temps, 1)
+          Series6.Addxy(Temps, StdDevValue); // courbe bleue
+          Series3.Addxy(Temps, Abs(nfh)); // courbe purple
+          // Series1.Addxy(Temps,Vx/10.0);
+        if inFlight then
+          Series1.Addxy(Temps, 1)
         else
-          Series1.AddXY(Temps, 0);}
+          Series1.Addxy(Temps, 0);
+        end;
         if inFlight then
         begin
           Exploite_data;
@@ -806,12 +871,12 @@ begin
       Classes := ((j + 0.5) * QuantumRough + LowG);
       Occurs := Spectrum[j] * (6000.0) / (FlightTime);
       spectrumStringGrid.Cells[1, 32 - j] := IntToStr(Spectrum[j]);
-      Series5.AddXY(Occurs, Classes);
+      Series5.Addxy(Occurs, Classes);
       Memo1.Lines.Add(Format('%8.2f' + #9 + '%8.0f', [Classes, Occurs]));
       Writeln(ResultFile, Classes:8:3, ',', Spectrum[j]:8);
     end;
   for j := 0 to 19 do
-    Series4.AddXY((Kossira_6000h[1, j]), (Kossira_6000h[0, j]));
+    Series4.Addxy((Kossira_6000h[1, j]), (Kossira_6000h[0, j]));
   FlightTimeLabel.Caption := Format('Flight time = %5.1f h', [+FlightTime]);
   RLabel.Caption := Format('R = %8.1f', [R]);
   Writeln(ResultFile, 'R = ', R:5:1);

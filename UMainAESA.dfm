@@ -21,12 +21,13 @@ object MainForm: TMainForm
     Align = alTop
     TabOrder = 0
     VerticalAlignment = taAlignTop
+    ExplicitTop = -6
     DesignSize = (
       1367
       49)
     object Label1: TLabel
-      Left = 744
-      Top = 23
+      Left = 784
+      Top = 7
       Width = 38
       Height = 15
       Caption = 'nq_avg'
@@ -52,6 +53,13 @@ object MainForm: TMainForm
       Height = 15
       Caption = 'FlightTime (h)'
     end
+    object Label2: TLabel
+      Left = 784
+      Top = 28
+      Width = 38
+      Height = 15
+      Caption = 'nq_avg'
+    end
     object FileNameLabeledEdit: TLabeledEdit
       Left = 4
       Top = 20
@@ -65,7 +73,7 @@ object MainForm: TMainForm
       EditLabel.Margins.Bottom = 6
       EditLabel.Caption = 'FileName'
       TabOrder = 0
-      Text = 'binary.TXT'
+      Text = 'D:\Data\Jean_Luc_Derouineau\AESA\F_CFAG\FCFAG 250709 binary.TXT'
     end
     object RunButton: TButton
       Left = 1323
@@ -93,6 +101,14 @@ object MainForm: TMainForm
       Checked = True
       State = cbChecked
       TabOrder = 3
+    end
+    object FFTCheckBox: TCheckBox
+      Left = 478
+      Top = 3
+      Width = 59
+      Height = 17
+      Caption = 'FFT'
+      TabOrder = 4
     end
   end
   object PageControl1: TPageControl
@@ -192,29 +208,30 @@ object MainForm: TMainForm
           FastPen = True
           LinePen.Color = 16744448
           LinePen.EndStyle = esRound
-          Stairs = True
           TreatNulls = tnDontPaint
           XValues.Name = 'X'
           XValues.Order = loNone
           YValues.Name = 'Y'
           YValues.Order = loNone
         end
-        object Series1: TPointSeries
-          Marks.Callout.Length = 8
+        object Series1: TLineSeries
           SeriesColor = clGreen
           Title = 'EnVol'
+          Brush.BackColor = clDefault
           ClickableLine = False
           Pointer.HorizSize = 1
           Pointer.InflateMargins = True
           Pointer.Pen.Visible = False
           Pointer.Style = psRectangle
           Pointer.VertSize = 1
+          Stairs = True
           XValues.Name = 'X'
           XValues.Order = loNone
           YValues.Name = 'Y'
           YValues.Order = loNone
         end
         object Series2: TPointSeries
+          Active = False
           Marks.Callout.Length = 8
           SeriesColor = clRed
           Title = 'nq'

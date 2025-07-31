@@ -120,7 +120,7 @@ object ConfForm: TConfForm
       ParentShowHint = False
       ShowHint = True
       TabOrder = 1
-      Text = '38'
+      Text = '6'
     end
     object OutlierLabeledEdit: TLabeledEdit
       Left = 200
@@ -176,7 +176,7 @@ object ConfForm: TConfForm
       ParentShowHint = False
       ShowHint = True
       TabOrder = 5
-      Text = '4000'
+      Text = '10'
     end
     object LabeledEdit2: TLabeledEdit
       Left = 200
@@ -247,7 +247,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Deceleration (g)'
       TabOrder = 0
-      Text = '-0.35'
+      Text = '0.25'
     end
     object PullUpLabeledEdit: TLabeledEdit
       Left = 152
@@ -258,7 +258,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Pullup (g)'
       TabOrder = 1
-      Text = '1.3'
+      Text = '0.5'
     end
     object PullUpDelayLabeledEdit: TLabeledEdit
       Left = 296

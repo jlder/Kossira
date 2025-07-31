@@ -146,6 +146,7 @@
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="UFFT.pas"/>
+        <DCCReference Include="UButterworth.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

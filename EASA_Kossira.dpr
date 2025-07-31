@@ -7,7 +7,8 @@ uses
   UConfAesa in 'UConfAesa.pas' {ConfForm},
   UDoc in 'UDoc.pas' {DocForm},
   UMainAESA in 'UMainAESA.pas' {MainForm},
-  UFFT in 'UFFT.pas';
+  UFFT in 'UFFT.pas',
+  UButterworth in 'UButterworth.pas';
 
 {$R *.res}
 
