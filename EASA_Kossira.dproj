@@ -147,6 +147,7 @@
         </DCCReference>
         <DCCReference Include="UFFT.pas"/>
         <DCCReference Include="UButterworth.pas"/>
+        <DCCReference Include="USort.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

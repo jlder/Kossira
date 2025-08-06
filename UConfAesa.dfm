@@ -176,7 +176,7 @@ object ConfForm: TConfForm
       ParentShowHint = False
       ShowHint = True
       TabOrder = 5
-      Text = '10'
+      Text = '18'
     end
     object LabeledEdit2: TLabeledEdit
       Left = 200

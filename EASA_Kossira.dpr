@@ -8,7 +8,8 @@ uses
   UDoc in 'UDoc.pas' {DocForm},
   UMainAESA in 'UMainAESA.pas' {MainForm},
   UFFT in 'UFFT.pas',
-  UButterworth in 'UButterworth.pas';
+  UButterworth in 'UButterworth.pas',
+  USort in 'USort.pas';
 
 {$R *.res}
 

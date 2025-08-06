@@ -21,7 +21,6 @@ object MainForm: TMainForm
     Align = alTop
     TabOrder = 0
     VerticalAlignment = taAlignTop
-    ExplicitTop = -6
     DesignSize = (
       1367
       49)
@@ -73,7 +72,9 @@ object MainForm: TMainForm
       EditLabel.Margins.Bottom = 6
       EditLabel.Caption = 'FileName'
       TabOrder = 0
-      Text = 'D:\Data\Jean_Luc_Derouineau\AESA\F_CFAG\FCFAG 250709 binary.TXT'
+      Text = 
+        'D:\Data\Jean_Luc_Derouineau\AESA\F_CFAG\FCFAG 250626 binary.txt.' +
+        'TXT'
     end
     object RunButton: TButton
       Left = 1323
@@ -105,10 +106,18 @@ object MainForm: TMainForm
     object FFTCheckBox: TCheckBox
       Left = 478
       Top = 3
-      Width = 59
+      Width = 50
       Height = 17
       Caption = 'FFT'
       TabOrder = 4
+    end
+    object SortCheckBox: TCheckBox
+      Left = 534
+      Top = 3
+      Width = 59
+      Height = 17
+      Caption = 'Sort'
+      TabOrder = 5
     end
   end
   object PageControl1: TPageControl
