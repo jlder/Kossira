@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Mask, Vcl.ExtCtrls;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Mask, Vcl.ExtCtrls, Vcl.CheckLst;
 
 type
   TConfForm = class(TForm)
@@ -33,7 +33,9 @@ type
     PullUpDelayLabeledEdit: TLabeledEdit;
     DecDelayLabeledEdit: TLabeledEdit;
     RepereRadioGroup: TRadioGroup;
+    DataCheckListBox: TCheckListBox;
     procedure ValidationButtonClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   private
     { Déclarations privées }
   public
@@ -195,6 +197,13 @@ begin
     Result := False;
 end;
 
+
+procedure TConfForm.FormCreate(Sender: TObject);
+begin
+DataCheckListBox.Checked[0]:=True;
+DataCheckListBox.Checked[1]:=True;
+
+end;
 
 procedure TConfForm.ValidationButtonClick(Sender: TObject);
 

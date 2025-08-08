@@ -2,13 +2,14 @@ object ConfForm: TConfForm
   Left = 0
   Top = 0
   Caption = 'Configuration'
-  ClientHeight = 377
+  ClientHeight = 434
   ClientWidth = 626
   Color = clBtnFace
   ParentFont = True
+  OnCreate = FormCreate
   DesignSize = (
     626
-    377)
+    434)
   TextHeight = 15
   object Panel1: TPanel
     Left = 0
@@ -314,5 +315,18 @@ object ConfForm: TConfForm
     ShowFrame = False
     TabOrder = 4
     StyleName = 'Windows'
+  end
+  object DataCheckListBox: TCheckListBox
+    Left = 224
+    Top = 295
+    Width = 121
+    Height = 97
+    ItemHeight = 17
+    Items.Strings = (
+      'Time'
+      'Accelerometer'
+      'Gyrometer'
+      'Attitude')
+    TabOrder = 5
   end
 end
