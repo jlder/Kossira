@@ -16,7 +16,7 @@ const
   Gravity = 9.807;
   TailleMessage = 22; // taille d'un message complet (temps+Accel)
   Taille_Spectrum = 31; // Quantification of loadfactor
-  WindowSize = 64; // Taille du buffer circulaire
+  WindowSize = 32; // Taille du buffer circulaire
 
 type
   Table_Spectrum = Array [0 .. Taille_Spectrum] of Integer;
@@ -117,6 +117,20 @@ type
     Checksum: Byte;
   end;
 
+  TgyrMessage = packed record
+    Header: array [0 .. 1] of Byte; // 0x55, 0x52
+    Gx_L, Gx_H, Gy_L, Gy_H, Gz_L, Gz_H: Byte;
+    Volt_L, Volt_H: Byte;
+    Checksum: Byte;
+  end;
+
+  TAttMessage = packed record
+    Header: array [0 .. 1] of Byte; // 0x55, 0x51
+    Rx_L, Rx_H, Py_L, Py_H, Yz_L, Yz_H: Byte;
+    Ver_L, Ver_H: Byte;
+    Checksum: Byte;
+  end;
+
 type
   TCircularBuffer = record
     Data: array [0 .. WindowSize - 1] of Extended;
@@ -137,6 +151,8 @@ var
   Repere: Integer; // 1 for ENU   , -1 for NED
   TimeMsg: TTimeMessage;
   AccMsg: TAccMessage;
+  AttMsg: TAttMessage;
+  GyrMsg: TGyrMessage;
   TailleFile: LongInt; // taille du fichier, en octets
   Compteur_FFT: Integer;
   R: Extended;
@@ -236,7 +252,7 @@ begin
       MainForm.Label2.Caption := FloatToStr(amax2);
       MainForm.FlightTimeLabel.Caption :=
         Format('Flight time : %10.2f s', [Temps]);
-      // Writeln(ResultFile, Temps:10:2, ',', amax1:5:3, ',', amax2:5:2);
+      //Writeln(ResultFile, Temps:10:2, ',', amax1:5:3, ',', amax2:5:2);
       Application.ProcessMessages;
       // sleep(3000);
     end;
@@ -423,7 +439,9 @@ Var
   i, j, K, col, raw: Integer;
   Count, N, n_1, nq, nq_1, nq_avg, slope, slope_1, minmax, minmax_1: Integer;
   nf, nff, nff_sum, nff_avg: Extended;
-  ax, ay, az: Extended;
+  ax, ay, az,Temperature: Extended;
+  gx, gy, gz,Voltage: Extended;
+  Roll, Pitch, Yaw,Version: Extended;
   Markov1, Markov2: Array [0 .. 31, 0 .. 31] of Integer;
   Debut, Fin: Extended;
   ax_AB, ay_AB, az_AB: TAlphaBeta;
@@ -436,6 +454,7 @@ Var
   Vx: Extended;
   VxOffset: Extended;
   FlightStatus: TFlightStatus;
+  Acquired:Boolean;
   (*
     Procedure inFlight_Determination(dax, ay, az: Extended; Var inFlight: Boolean;
     Var LandingTime, TakeOffTime: Extended);
@@ -512,6 +531,10 @@ Var
     pseudotime, azf: Extended;
 
   begin
+    PullUp := StrToFloat(ConfForm.PullUpLabeledEdit.Text);
+    PullUpDelay := StrToFloat(ConfForm.PullUpDelayLabeledEdit.Text);
+    Deceleration := StrToFloat(ConfForm.DecelerationLabeledEdit.Text);
+    DecelerationDelay := StrToFloat(ConfForm.DecDelayLabeledEdit.Text);
     pseudotime := Temps;
     /// /REM extract azf := Nz
     // azf := getaz()
@@ -523,23 +546,24 @@ Var
       OnGround:
         begin
           // REM glider on ground before takeoff
-          if (StdDevValueAzh > 0.1) and (StdDevValueAzd > 1) then
+          if (StdDevValueAzh > PullUp/10.0) and (StdDevValueAzd > PullUp) then
           begin
             FlightStatus := Taxing;
             RollingTime := pseudotime;
+            Writeln(ResultFile, 'Taxing date : ', TakeOffTime:10:0);
           end;
         end;
       Taxing:
         begin
           // REM glider in takeoff roll
           // if StdDevValue < 0.25 then
-          if StdDevValueAzh < 0.1 then
-            if ((pseudotime - RollingTime) > 5.0) then
+          if StdDevValueAzh < Deceleration then
+            if ((pseudotime - RollingTime) > PullUpDelay) then
             begin
               FlightStatus := inFlight;
               TakeOffTime := pseudotime;
               // REM Add flight to log
-              // Writeln(ResultFile, 'Flight date : ', TakeOffTime:10:0);
+              Writeln(ResultFile, 'Flying date : ', TakeOffTime:10:0);
             end;
           // else
           // FlightStatus := OnGround;
@@ -547,30 +571,35 @@ Var
       inFlight:
         begin
           // REM glider airborne
-          if (StdDevValueAzh > 0.1) and (StdDevValueAzd > 0.1) then
+          if (StdDevValueAzh > Deceleration) and (StdDevValueAzd > Deceleration) and ((pseudotime - TakeOffTime) > PullUpDelay) then
           begin
             FlightStatus := Touching;
             LandingTime := pseudotime;
+            Writeln(ResultFile, 'Touching date : ', TakeOffTime:10:0);
           end;
         end;
       Touching:
         begin
           // REM glider in landing roll
-          if (StdDevValueAzh < 0.1) and (StdDevValueAzd < 0.1) then
+          if (StdDevValueAzh < Deceleration) and (StdDevValueAzd < Deceleration) then
             if ((pseudotime - LandingTime) > 1) then
             begin
               FlightStatus := Landing;
               LandingTimeEnd := pseudotime;
               // REM Add flight to log
               FlightTime := (LandingTimeEnd - TakeOffTime) / 3600.0;
-              // Writeln(ResultFile, 'Flight time : ', FlightTime:10:0);
+              Writeln(ResultFile, 'Landing date : ', LandingTimeEnd:10:0,
+                'Flight time : ', FlightTime:10:0);
             end;
         end;
       Landing:
         begin
           // REM glider on ground after flight
-          if (StdDevValueAzh < 0.1) and (StdDevValueAzd < 0.1) then
+          if (StdDevValueAzh < Deceleration/2.0) and (StdDevValueAzd < Deceleration/2.0) then
+          begin
             FlightStatus := OnGround;
+            Writeln(ResultFile, 'Stop date : ', Temps:10:0);
+          end;
         end;
     end;
   end;
@@ -694,8 +723,9 @@ begin
     Spectrum[i] := 0;
   Debut := 0.0;
   Chart1.Axes.Left.Automatic := False;
-  Chart1.Axes.Left.Maximum := HighG;
-  Chart1.Axes.Left.Minimum := LowG;
+  Chart1.Axes.Left.Automatic := True;
+  //Chart1.Axes.Left.Maximum := HighG;
+  //Chart1.Axes.Left.Minimum := LowG;
   NAccel := StrToInt(ConfForm.NAccelLabeledEdit.Text);
   NAccelx := StrToInt(ConfForm.NAccelxLabeledEdit.Text);
   AccelOutlier := StrToFloat(ConfForm.OutlierLabeledEdit.Text);
@@ -735,6 +765,7 @@ begin
       case Buffer[1] of
         $50:
           begin
+            acquired:=False;
             // Message temps
             BlockRead(BinaryFile, Buffer[2], 9);
             // Lire le reste (8 octets)
@@ -746,7 +777,7 @@ begin
               Temps := TimeMsg.Hour * 3600 + TimeMsg.Minute * 60 +
                 TimeMsg.Second + SmallInt((TimeMsg.MS_H shl 8) or
                 TimeMsg.MS_L) / 1000.0;
-              Write(ResultFile, Temps:10:3, (Temps - Temps_1):8:3, ',');
+              Write(ResultFile, Temps:10:3, ',',(Temps - Temps_1):8:3, ',');
               Temps_1 := Temps;
             end
             else
@@ -765,12 +796,52 @@ begin
               ax := SmallInt((AccMsg.Ax_H shl 8) or AccMsg.Ax_L) / 2048.0;
               ay := SmallInt((AccMsg.Ay_H shl 8) or AccMsg.Ay_L) / 2048.0;
               az := SmallInt((AccMsg.Az_H shl 8) or AccMsg.Az_L) / 2048.0;
+              Temperature := SmallInt((AccMsg.Temp_H shl 8) or AccMsg.Temp_L) / 100.0;
               az_AB.ABupdate(deltaT, -az * Repere);
               nff := -az * Repere;
               // sum nff values
               nff_sum := nff_sum + nff;
-              Writeln(ResultFile, ax:10:3, ',', ay:10:3, ',', az:10:3);
+              Write(ResultFile, ax:10:3, ',', ay:10:3, ',', az:10:3,',',Temperature:5:1,',');
               Count := Count + 1;
+            end
+            else
+              Writeln(ResultFile, 'Erreur checksum acc');
+          end;
+        $52:
+          begin
+            // Message accélération
+            BlockRead(BinaryFile, Buffer[2], 9);
+            // Lire le reste (8 octets)
+            Move(Buffer, GyrMsg, SizeOf(AccMsg));
+            Checksum := CalcChecksum(Buffer, 10); // 9 premiers octets
+            if Checksum = GyrMsg.Checksum then
+            begin
+              // Message accélération valide, traiter ici
+              gx := SmallInt((GyrMsg.Gx_H shl 8) or GyrMsg.Gx_L) / 16.384;
+              gy := SmallInt((GyrMsg.Gy_H shl 8) or GyrMsg.Gy_L) / 16.384;
+              gz := SmallInt((GyrMsg.Gz_H shl 8) or GyrMsg.Gz_L) / 16.384;
+              Voltage := SmallInt((GyrMsg.Volt_H shl 8) or GyrMsg.Volt_L) / 100.0;
+              Write(ResultFile, gx:10:3, ',', gy:10:3, ',', gz:10:3,',',Voltage:5:2,',');
+            end
+            else
+              Writeln(ResultFile, 'Erreur checksum acc');
+          end;
+        $53:
+          begin
+            // Message accélération
+            BlockRead(BinaryFile, Buffer[2], 9);
+            // Lire le reste (8 octets)
+            Move(Buffer, AttMsg, SizeOf(AccMsg));
+            Checksum := CalcChecksum(Buffer, 10); // 9 premiers octets
+            if Checksum = AttMsg.Checksum then
+            begin
+              // Message accélération valide, traiter ici
+              Roll := SmallInt((AttMsg.Rx_H shl 8) or AttMsg.Rx_L) / 182.044;
+              Pitch := SmallInt((AttMsg.Py_H shl 8) or AttMsg.Py_L) / 182.044;
+              Yaw := SmallInt((AttMsg.Yz_H shl 8) or AttMsg.Yz_L) / 182.044;
+              Version:= SmallInt((AttMsg.Ver_H shl 8) or AttMsg.Ver_L);
+              Writeln(ResultFile, Roll:10:3, ',', Pitch:10:3, ',', Yaw:10:3,',',Version:6:0);
+              Acquired:=True;
             end
             else
               Writeln(ResultFile, 'Erreur checksum acc');
@@ -808,8 +879,8 @@ begin
   Application.ProcessMessages;
   // sleep(10000);
 
-  Series3.Clear;
-  Series6.Clear;
+  //Series3.Clear;
+  //Series6.Clear;
   FlightStatus := OnGround; // reset file to begining
   Reset(BinaryFile, 1);
   While Not EoF(BinaryFile) do
@@ -818,8 +889,10 @@ begin
     BlockRead(BinaryFile, Buffer, 2);
     if Buffer[0] = $55 then
     begin
-      if Buffer[1] = $50 then
+      case Buffer[1] of
+      $50:
       begin
+        Acquired:=False;
         // Message temps
         BlockRead(BinaryFile, Buffer[2], 9);
         // Lire le reste (8 octets)
@@ -831,8 +904,8 @@ begin
           Temps := TimeMsg.Hour * 3600 + TimeMsg.Minute * 60 + TimeMsg.Second +
             SmallInt((TimeMsg.MS_H shl 8) or TimeMsg.MS_L) / 1000.0;
         end;
-      end
-      else if Buffer[1] = $51 then
+      end;
+      $51:
       begin
         // Message accélération
         BlockRead(BinaryFile, Buffer[2], 9);
@@ -845,10 +918,60 @@ begin
           ax := SmallInt((AccMsg.Ax_H shl 8) or AccMsg.Ax_L) / 2048.0;
           ay := SmallInt((AccMsg.Ay_H shl 8) or AccMsg.Ay_L) / 2048.0;
           az := SmallInt((AccMsg.Az_H shl 8) or AccMsg.Az_L) / 2048.0;
+          Count := Count + 1;
+        end;
+      end;
+        $52:
+          begin
+            // Message accélération
+            BlockRead(BinaryFile, Buffer[2], 9);
+            // Lire le reste (8 octets)
+            Move(Buffer, GyrMsg, SizeOf(AccMsg));
+            Checksum := CalcChecksum(Buffer, 10); // 9 premiers octets
+            if Checksum = GyrMsg.Checksum then
+            begin
+              // Message accélération valide, traiter ici
+              gx := SmallInt((GyrMsg.Gx_H shl 8) or GyrMsg.Gx_L) / 16.384;
+              gy := SmallInt((GyrMsg.Gy_H shl 8) or GyrMsg.Gy_L) / 16.384;
+              gz := SmallInt((GyrMsg.Gz_H shl 8) or GyrMsg.Gz_L) / 16.384;
+              Voltage := SmallInt((GyrMsg.Volt_H shl 8) or GyrMsg.Volt_L) / 100.0;
+              Write(ResultFile, gx:10:3, ',', gy:10:3, ',', gz:10:3,',',Voltage:5:2,',');
+            end
+            else
+              Writeln(ResultFile, 'Erreur checksum acc');
+          end;
+        $53:
+          begin
+            // Message accélération
+            BlockRead(BinaryFile, Buffer[2], 9);
+            // Lire le reste (8 octets)
+            Move(Buffer, AttMsg, SizeOf(AccMsg));
+            Checksum := CalcChecksum(Buffer, 10); // 9 premiers octets
+            if Checksum = AttMsg.Checksum then
+            begin
+              // Message accélération valide, traiter ici
+              Roll := SmallInt((AttMsg.Rx_H shl 8) or AttMsg.Rx_L) / 182.044;
+              Pitch := SmallInt((AttMsg.Py_H shl 8) or AttMsg.Py_L) / 182.044;
+              Yaw := SmallInt((AttMsg.Yz_H shl 8) or AttMsg.Yz_L) / 182.044;
+              Version:= SmallInt((AttMsg.Ver_H shl 8) or AttMsg.Ver_L);
+              Writeln(ResultFile, Roll:10:3, ',', Pitch:10:3, ',', Yaw:10:3,',',Version:6:0);
+              Acquired:=True;// Une séquence complète a été acquise
+            end
+            else
+              Writeln(ResultFile, 'Erreur checksum acc');
+          end;
+      else
+        Writeln(ResultFile, 'pb décodage');
+         end;
+      if (nff >= LowG) and (nff <= HighG) then
+      begin
+        if Acquired and GraphCheckBox.Checked and Not MainForm.FFTCheckBox.Checked then
+        begin
           // ax_AB.ABupdate(deltaT, ax);
           az_AB.ABupdate(deltaT, -az * Repere);
           nff := -az * Repere;
           AddSample(BufAzd, az_AB.ABprim);
+          //AddSample(BufAzd, ax+Pitch/180.0*pi);
           StdDevValueAzd := ComputeStdDev(BufAzd);
           // inFlight_Determination(ax - ax_AB.ABfilt, ay, az_AB.ABfilt, inFlight,
           // TakeOffTime, LandingTime);
@@ -861,18 +984,9 @@ begin
           inFlight_Determination(StdDevValueAzd, ay, StdDevValueAzh,
             FlightStatus, LandingTime, TakeOffTime, RollingTime,
             LandingTimeEnd);
-          Count := Count + 1;
-        end;
-      end;
-      if (nff >= LowG) and (nff <= HighG) then
-      begin
-        if GraphCheckBox.Checked and Not MainForm.FFTCheckBox.Checked then
-        begin
-          // Series6.Addxy(Temps, StdDevValueAzd); // courbe bleue
-          // Series3.Addxy(Temps, StdDevValueAzh); // courbe purple
-          Series6.Addxy(Temps, nff); // courbe bleue
-          Series3.Addxy(Temps, nfh); // courbe purple
-          // Series1.Addxy(Temps,Vx/10.0);
+           Series6.Addxy(Temps, StdDevValueAzd); // courbe bleue
+           Series3.Addxy(Temps, StdDevValueAzh); // courbe purple
+           //Series1.Addxy(Temps,Pitch/10.0);
           if FlightStatus = inFlight then
             Series1.Addxy(Temps, 1)
           else

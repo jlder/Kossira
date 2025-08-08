@@ -247,7 +247,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Deceleration (g)'
       TabOrder = 0
-      Text = '0.25'
+      Text = '0.2'
     end
     object PullUpLabeledEdit: TLabeledEdit
       Left = 152
@@ -258,7 +258,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Pullup (g)'
       TabOrder = 1
-      Text = '0.5'
+      Text = '1.0'
     end
     object PullUpDelayLabeledEdit: TLabeledEdit
       Left = 296
@@ -269,7 +269,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Pullup delay (s)'
       TabOrder = 2
-      Text = '100'
+      Text = '5'
     end
     object DecDelayLabeledEdit: TLabeledEdit
       Left = 432
@@ -280,7 +280,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Deceleration delay (s)'
       TabOrder = 3
-      Text = '100'
+      Text = '2'
     end
   end
   object RepereRadioGroup: TRadioGroup
