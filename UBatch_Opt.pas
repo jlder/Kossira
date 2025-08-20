@@ -1,4 +1,4 @@
-unit UBatch;
+unit UBatch_Opt;
 
 interface
 
@@ -6,7 +6,7 @@ uses
   System.IOUtils, Winapi.Windows, Winapi.Messages, System.SysUtils,
   System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.FileCtrl,
-  Vcl.ExtCtrls, UDecodeWIT;
+  Vcl.ExtCtrls, UDecodeWIT_Opt;
 
 type
   TBatchForm = class(TForm)
@@ -55,6 +55,8 @@ Var
   i, j: Integer;
   Cumul_Spectrum: Table_Spectrum;
   Cumul_FlightTime: Extended;
+  Classe: Extended;
+  Bidon1, bidon2: String;
 begin
   for i := 0 to 31 do
   begin
@@ -87,6 +89,8 @@ begin
       Series4.Clear;
       Series5.Clear;
       Series6.Clear;
+      MainForm.Label1.Caption:='';
+      MainForm.Label2.Caption:='';
       if ConfForm.RepereRadioGroup.ItemIndex = 0 then
         Repere := 1
       else
@@ -106,13 +110,37 @@ begin
       end;
       FileNameLabeledEdit.Text := FileName;
       DataBytes := TFile.ReadAllBytes(FileName);
-      FileName := Copy(FileName, 0, Length(FileName) - 4);
-      AssignFile(ResultFile, FileName + '.res');
-      Rewrite(ResultFile);
-      ExploitationFichier(Sender);
-      for j := 0 to Taille_Spectrum do
-        Cumul_Spectrum[j] := Cumul_Spectrum[j] + spectrum[j];
-      Cumul_FlightTime := Cumul_FlightTime + FlightTime;
+      ResFileName := Copy(FileName, 0, Length(FileName) - 4) + '.res';
+      AssignFile(ResultFile, ResFileName);
+      if Not FileExists(ResFileName) then
+      begin
+        Rewrite(ResultFile);
+        FileProcessing(Sender);
+        for j := 0 to Taille_Spectrum do
+          Cumul_Spectrum[j] := Cumul_Spectrum[j] + spectrum[j];
+        Cumul_FlightTime := Cumul_FlightTime + FlightTime;
+      end
+      else
+      begin
+        Reset(ResultFile);
+        Repeat
+          Readln(ResultFile, Bidon1);
+          j := Pos('FlightTime', Bidon1);
+          if j > 0 then
+          begin
+            bidon2 := Copy(Bidon1, j, Length(Bidon1) - j);
+            j := Pos(':', bidon2);
+            bidon2 := Copy(bidon2, j+1, Length(Bidon2) - j);
+            FlightTime := StrToFloat(bidon2);
+          end;
+        Until Pos('Classes', Bidon1) > 0;
+        For j := 0 to Taille_Spectrum do
+        begin
+          Readln(ResultFile, Classe, spectrum[j]);
+          Cumul_Spectrum[j] := Cumul_Spectrum[j] + spectrum[j];
+        end;
+        Cumul_FlightTime := Cumul_FlightTime + FlightTime;
+      end;
       CloseFile(ResultFile);
     end;
   end;
@@ -121,12 +149,25 @@ begin
   Writeln(ResultFile, Repertoire);
   Writeln(ResultFile, 'Total Flight Time (h):', Cumul_FlightTime:10:2);
   Writeln(ResultFile, 'Classes (g)', #9, 'Occurs');
+  MainForm.Series5.Title := Repertoire;
   for j := 0 to Taille_Spectrum do
   begin
+    Occurs := Cumul_Spectrum[j] * (6000.0) / (Cumul_FlightTime); // Normalisation for 6000h to be compared with the Kossira reference
     Classes := ((j + 0.5) * QuantumRough + LowG);
+    if Spectrum[j] <> 0 then
+    begin
+      MainForm.spectrumStringGrid.Cells[1, Taille_Spectrum + 1 - j] := IntToStr(Cumul_Spectrum[j]);
+      MainForm.Series5.Addxy(Occurs, Classes);
+      MainForm.Memo1.Lines.Add(Format('%8.2f' + #9 + '%8.0f', [Classes, Occurs]));
+    end;
     Writeln(ResultFile, Classes:8:3, Cumul_Spectrum[j]:10);
   end;
+  for j := 0 to 19 do
+    MainForm.Series4.Addxy((Kossira_6000h[1, j]), (Kossira_6000h[0, j])); // Kossira reference plot
   R := R_Calculation(Cumul_FlightTime, Cumul_Spectrum);
+  MainForm.FlightTimeLabel.Caption := Format('Flight time = %5.1f h', [Cumul_FlightTime]);
+  MainForm.RLabel.Caption := Format('R = %8.1f', [R]);
+  MainForm.RunningLabel.Caption := 'Batch complete';
   FlightTimeLabel.Caption := Format('Flight time = %5.1f h', [Cumul_FlightTime]);
   RLabel.Caption := Format('R = %8.1f', [R]);
   Writeln(ResultFile, 'R=', R:5:1);

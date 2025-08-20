@@ -34,6 +34,12 @@ type
     DecDelayLabeledEdit: TLabeledEdit;
     RepereRadioGroup: TRadioGroup;
     DataCheckListBox: TCheckListBox;
+    ButterWorthRadioGroup: TRadioGroup;
+    Panel4: TPanel;
+    w1LabeledEdit: TLabeledEdit;
+    w2LabeledEdit: TLabeledEdit;
+    w3LabeledEdit: TLabeledEdit;
+    w4LabeledEdit: TLabeledEdit;
     procedure ValidationButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
   private
@@ -73,6 +79,10 @@ var
   HighG, LowG, Dynamique:Extended;
   ClassNumbers, UnderSample:Integer;
   deltaT,distCdGx,distCdGz:Extended;
+var // fusion parameters
+  w1,w2,w3,w4:Integer;
+
+function CountCheckedItems(CheckListBox: TCheckListBox): Integer;
 
 implementation
 
@@ -202,6 +212,8 @@ procedure TConfForm.FormCreate(Sender: TObject);
 begin
 DataCheckListBox.Checked[0]:=True;
 DataCheckListBox.Checked[1]:=True;
+DataCheckListBox.Checked[2]:=True;
+DataCheckListBox.Checked[3]:=True;
 
 end;
 
@@ -219,6 +231,15 @@ Quantum:=Dynamique/ClassNumbers;
 QuantumRough:=Dynamique/UnderSample;
 QuantumLabel.Caption := Format('%5.3f',[Quantum*1000.0]);
 Close;
+end;
+function CountCheckedItems(CheckListBox: TCheckListBox): Integer;
+var
+  i: Integer;
+begin
+  Result := 0;
+  for i := 0 to CheckListBox.Count - 1 do
+    if CheckListBox.Checked[i] then
+      Inc(Result);
 end;
 
 end.

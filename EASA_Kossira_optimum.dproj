@@ -6,10 +6,10 @@
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
-        <ProjectName Condition="'$(ProjectName)'==''">EASA_Kossira</ProjectName>
+        <ProjectName Condition="'$(ProjectName)'==''">EASA_Kossira_optimum</ProjectName>
         <TargetedPlatforms>3</TargetedPlatforms>
         <AppType>Application</AppType>
-        <MainSource>EASA_Kossira.dpr</MainSource>
+        <MainSource>EASA_Kossira_optimum.dpr</MainSource>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
         <Base>true</Base>
@@ -70,7 +70,7 @@
         <Icon_MainIcon>$(BDS)\bin\delphi_PROJECTICON.ico</Icon_MainIcon>
         <UWP_DelphiLogo44>$(BDS)\bin\Artwork\Windows\UWP\delphi_UwpDefault_44.png</UWP_DelphiLogo44>
         <UWP_DelphiLogo150>$(BDS)\bin\Artwork\Windows\UWP\delphi_UwpDefault_150.png</UWP_DelphiLogo150>
-        <SanitizedProjectName>EASA_Kossira</SanitizedProjectName>
+        <SanitizedProjectName>EASA_Kossira_optimum</SanitizedProjectName>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <DCC_UsePackage>vclwinx;FMXTeePro929;fmx;TeePro929;vclie;DbxCommonDriver;bindengine;IndyIPCommon;VCLRESTComponents;FireDACCommonODBC;FireDACCommonDriver;appanalytics;IndyProtocols;vclx;Skia.Package.RTL;IndyIPClient;dbxcds;vcledge;bindcompvclwinx;FMXTeeDB929;TeeDB929;bindcompfmx;inetdb;FireDACSqliteDriver;DbxClientDriver;soapmidas;vclactnband;fmxFireDAC;dbexpress;TeeWorld929;DBXMySQLDriver;VclSmp;inet;vcltouch;fmxase;Tee929;FMXTee929;dbrtl;Skia.Package.FMX;TeeImage929;fmxdae;FMXTeeImport929;FireDACMSAccDriver;CustomIPTransport;vcldsnap;DBXInterBaseDriver;TeeUI929;IndySystem;Skia.Package.VCL;vcldb;vclFireDAC;FMXTeeLanguage929;bindcomp;FireDACCommon;IndyCore;RESTBackendComponents;bindcompdbx;FMXTree29;rtl;FireDACMySQLDriver;TeeLanguage929;TeeGL929;FireDACADSDriver;RESTComponents;DBXSqliteDriver;vcl;IndyIPServer;dsnapxml;dsnapcon;adortl;FmxTeeUI929;vclimg;FireDACPgDriver;FireDAC;inetdbxpress;xmlrtl;tethering;TeeImport929;bindcompvcl;dsnap;CloudService;fmxobj;bindcompvclsmp;TeeTree2D29Tee9;soaprtl;soapserver;FireDACIBDriver;$(DCC_UsePackage)</DCC_UsePackage>
@@ -129,7 +129,7 @@
             <Form>OKRightDlg</Form>
             <FormType>dfm</FormType>
         </DCCReference>
-        <DCCReference Include="UBatch.pas">
+        <DCCReference Include="UBatch_Opt.pas">
             <Form>BatchForm</Form>
             <FormType>dfm</FormType>
         </DCCReference>
@@ -141,14 +141,14 @@
             <Form>DocForm</Form>
             <FormType>dfm</FormType>
         </DCCReference>
-        <DCCReference Include="UMainAESA.pas">
+        <DCCReference Include="UMainAESA_Opt.pas">
             <Form>MainForm</Form>
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="UFFT.pas"/>
         <DCCReference Include="UButterworth.pas"/>
         <DCCReference Include="USort.pas"/>
-        <DCCReference Include="UDecodeWIT.pas"/>
+        <DCCReference Include="UDecodeWIT_opt.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -167,7 +167,7 @@
         <BorlandProject>
             <Delphi.Personality>
                 <Source>
-                    <Source Name="MainSource">EASA_Kossira.dpr</Source>
+                    <Source Name="MainSource">EASA_Kossira_optimum.dpr</Source>
                 </Source>
                 <Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dcloffice2k290.bpl">Composants Microsoft Office 2000 Sample Automation Server Wrapper</Excluded_Packages>
@@ -175,9 +175,9 @@
                 </Excluded_Packages>
             </Delphi.Personality>
             <Deployment Version="4">
-                <DeployFile LocalName="Win32\Debug\EASA_Kossira.exe" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="Win32\Debug\EASA_Kossira_optimum.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
-                        <RemoteName>EASA_Kossira.exe</RemoteName>
+                        <RemoteName>EASA_Kossira_optimum.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>

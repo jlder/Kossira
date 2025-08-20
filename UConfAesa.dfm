@@ -2,14 +2,14 @@ object ConfForm: TConfForm
   Left = 0
   Top = 0
   Caption = 'Configuration'
-  ClientHeight = 434
+  ClientHeight = 444
   ClientWidth = 626
   Color = clBtnFace
   ParentFont = True
   OnCreate = FormCreate
   DesignSize = (
     626
-    434)
+    444)
   TextHeight = 15
   object Panel1: TPanel
     Left = 0
@@ -177,7 +177,7 @@ object ConfForm: TConfForm
       ParentShowHint = False
       ShowHint = True
       TabOrder = 5
-      Text = '18'
+      Text = '6'
     end
     object LabeledEdit2: TLabeledEdit
       Left = 200
@@ -221,10 +221,29 @@ object ConfForm: TConfForm
       TabOrder = 8
       Text = '6.0'
     end
+    object ButterWorthRadioGroup: TRadioGroup
+      Left = 416
+      Top = 6
+      Width = 105
+      Height = 99
+      Caption = 'ButterWorth order'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = 16
+      Font.Name = 'Segoe UI'
+      Font.Style = []
+      ItemIndex = 2
+      Items.Strings = (
+        'Order 0'
+        'Order2'
+        'Order4')
+      ParentFont = False
+      TabOrder = 9
+    end
   end
   object ShowDataCheckBox: TCheckBox
     Left = 40
-    Top = 322
+    Top = 386
     Width = 97
     Height = 17
     Caption = 'ShowData'
@@ -270,7 +289,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Pullup delay (s)'
       TabOrder = 2
-      Text = '5'
+      Text = '1'
     end
     object DecDelayLabeledEdit: TLabeledEdit
       Left = 432
@@ -281,12 +300,12 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Deceleration delay (s)'
       TabOrder = 3
-      Text = '2'
+      Text = '20'
     end
   end
   object RepereRadioGroup: TRadioGroup
     Left = 447
-    Top = 322
+    Top = 378
     Width = 123
     Height = 36
     Margins.Top = 0
@@ -318,15 +337,69 @@ object ConfForm: TConfForm
   end
   object DataCheckListBox: TCheckListBox
     Left = 224
-    Top = 295
+    Top = 375
     Width = 121
-    Height = 97
-    ItemHeight = 17
+    Height = 66
+    ItemHeight = 15
     Items.Strings = (
       'Time'
       'Accelerometer'
       'Gyrometer'
       'Attitude')
     TabOrder = 5
+  end
+  object Panel4: TPanel
+    Left = 0
+    Top = 289
+    Width = 626
+    Height = 80
+    Align = alTop
+    Caption = 'Fusion parameters'
+    TabOrder = 6
+    VerticalAlignment = taAlignTop
+    object w1LabeledEdit: TLabeledEdit
+      Left = 16
+      Top = 42
+      Width = 73
+      Height = 23
+      EditLabel.Width = 15
+      EditLabel.Height = 15
+      EditLabel.Caption = 'w1'
+      TabOrder = 0
+      Text = '1'
+    end
+    object w2LabeledEdit: TLabeledEdit
+      Left = 152
+      Top = 42
+      Width = 73
+      Height = 23
+      EditLabel.Width = 15
+      EditLabel.Height = 15
+      EditLabel.Caption = 'w2'
+      TabOrder = 1
+      Text = '0'
+    end
+    object w3LabeledEdit: TLabeledEdit
+      Left = 296
+      Top = 42
+      Width = 73
+      Height = 23
+      EditLabel.Width = 15
+      EditLabel.Height = 15
+      EditLabel.Caption = 'w3'
+      TabOrder = 2
+      Text = '0'
+    end
+    object w4LabeledEdit: TLabeledEdit
+      Left = 432
+      Top = 42
+      Width = 73
+      Height = 23
+      EditLabel.Width = 15
+      EditLabel.Height = 15
+      EditLabel.Caption = 'w4'
+      TabOrder = 3
+      Text = '1'
+    end
   end
 end
