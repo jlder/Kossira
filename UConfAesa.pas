@@ -40,6 +40,9 @@ type
     w2LabeledEdit: TLabeledEdit;
     w3LabeledEdit: TLabeledEdit;
     w4LabeledEdit: TLabeledEdit;
+    TouchLabeledEdit: TLabeledEdit;
+    IntegratorThresholdLabeledEdit: TLabeledEdit;
+    NewFlightDelayLabeledEdit: TLabeledEdit;
     procedure ValidationButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
   private

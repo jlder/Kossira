@@ -142,8 +142,8 @@ var
   flightIdx: Integer;
   GyroPresent, AttPresent: Boolean;
   StdDevValueAxd, StdDevValueAxh, StdDevValueAzd, StdDevValueAzh: Extended;
-  PullUp, Deceleration, PullUpDelay, DecelerationDelay: Extended;
-  phase: (Idle, Taxi, Air, Taxi2);
+  PullUp, IntegratorThreshold, Deceleration, Touching, PullUpDelay, DecelerationDelay, NewFlightDelay: Extended;
+  phase: (Idle, Taxi, TaxiConfirm, Air, Taxi2);
   Velocity: Extended;
   Offset: Extended; // Offset for avoiding velocity error
 
@@ -165,8 +165,10 @@ var
 var // Butterworth variables
   HPBuf2: THighPassFilter2;
   HPBuf4: THighPassFilter4;
-  THPBuf4: THighPassFilter4;
+  THPBuf4x: THighPassFilter4;
+  THPBuf4z: THighPassFilter4;
   nfh: Extended;
+  IAxh, Iazh: Extended;
 
 var // Time profiler variables
   StartCount, EndCount, Frequency: Int64;
@@ -296,14 +298,22 @@ begin
   HPBuf4.y2 := 0;
   HPBuf4.y3 := 0;
   HPBuf4.y4 := 0;
-  THPBuf4.x1 := 0;
-  THPBuf4.x2 := 0;
-  THPBuf4.x3 := 0;
-  THPBuf4.x4 := 0;
-  THPBuf4.y1 := 0;
-  THPBuf4.y2 := 0;
-  THPBuf4.y3 := 0;
-  THPBuf4.y4 := 0;
+  THPBuf4x.x1 := 0;
+  THPBuf4x.x2 := 0;
+  THPBuf4x.x3 := 0;
+  THPBuf4x.x4 := 0;
+  THPBuf4x.y1 := 0;
+  THPBuf4x.y2 := 0;
+  THPBuf4x.y3 := 0;
+  THPBuf4x.y4 := 0;
+  THPBuf4z.x1 := 0;
+  THPBuf4z.x2 := 0;
+  THPBuf4z.x3 := 0;
+  THPBuf4z.x4 := 0;
+  THPBuf4z.y1 := 0;
+  THPBuf4z.y2 := 0;
+  THPBuf4z.y3 := 0;
+  THPBuf4z.y4 := 0;
   Fusion_Result_1 := 0.0;
 
   GyroPresent := ConfForm.DataCheckListBox.Checked[2];
@@ -321,9 +331,12 @@ begin
   Flights[0].idxTaxiStop := 0;
 
   PullUp := StrToFloat(ConfForm.PullUpLabeledEdit.Text);
+  IntegratorThreshold := StrToFloat(ConfForm.IntegratorThresholdLabeledEdit.Text);
   PullUpDelay := StrToFloat(ConfForm.PullUpDelayLabeledEdit.Text);
+  Touching := StrToFloat(ConfForm.TouchLabeledEdit.Text);
   Deceleration := StrToFloat(ConfForm.DecelerationLabeledEdit.Text);
   DecelerationDelay := StrToFloat(ConfForm.DecDelayLabeledEdit.Text);
+  NewFlightDelay := StrToFloat(ConfForm.NewFlightDelayLabeledEdit.Text);
   QueryPerformanceCounter(EndCount);
   ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
   Writeln(ResultFile, Format('Durée de l''initialisation: %.6f secondes', [ElapsedTime]));
@@ -515,10 +528,10 @@ begin
   ConfButtonClick(Sender)
 end;
 
-procedure DetectFlights(Index: Integer; Time64: Int64; Ax, StdDevValueAxh, StdDevValueAzd, StdDevValueAzh: Extended; var Fusion_Result, Fusion_Result_1: Extended; var Flights: TFlights; var Fusion_Coef: TFusion_Coef);
+procedure DetectFlights(Index: Integer; Time64: Int64; Ax, IAxh, Iazh, StdDevValueAzh: Extended; var Fusion_Result, Fusion_Result_1: Extended; var Flights: TFlights; var Fusion_Coef: TFusion_Coef);
 var
   currFlight: TFlightInfo;
-  Function DetectTaxiStart(Time64: Int64; Fusion, PullUpDelay: Extended): Boolean;
+  Function DetectTaxiStart(Time64: Int64; Fusion: Extended): Boolean;
   begin
     if (Fusion > PullUp) then
       DetectTaxiStart := True
@@ -527,14 +540,14 @@ var
   end;
   Function DetectTakeOff(Time64: Int64; Fusion, Deceleration, PullUpDelay: Extended): Boolean;
   begin
-    if (Fusion < Deceleration) { and ((Time64 - currFlight.TakeOff) / 1000.0 > PullUpDelay) } then
+    if (Fusion < Deceleration) and ((Time64 - currFlight.TakeOff) / 1000.0 > PullUpDelay) then
       DetectTakeOff := True
     else
       DetectTakeOff := False;
   end;
   Function DetectTouchDown(Time64: Int64; Fusion: Extended): Boolean;
   begin
-    if (Fusion > PullUp) then
+    if (Fusion > Touching) and ((Time64 - currFlight.TakeOff) / 1000.0 > 10.0) then
       DetectTouchDown := True
     else
       DetectTouchDown := False;
@@ -551,52 +564,58 @@ begin
   Var
     Fusion: Extended;
   currFlight := Flights[flightIdx];
-  Fusion := (Fusion_Coef[0] * Ax + Fusion_Coef[1] * StdDevValueAxh + Fusion_Coef[2] * StdDevValueAzd + Fusion_Coef[3] * StdDevValueAzh) {/ (Fusion_Coef[0] + Fusion_Coef[1] + Fusion_Coef[2] + Fusion_Coef[3])};
-  Fusion_Result := Fusion - Fusion_Result_1;
+  Fusion := (Fusion_Coef[0] * Ax + Fusion_Coef[1] * IAxh + Fusion_Coef[2] * Iazh + Fusion_Coef[3] * StdDevValueAzh) { / (Fusion_Coef[0] + Fusion_Coef[1] + Fusion_Coef[2] + Fusion_Coef[3]) };
   Fusion_Result_1 := Fusion;
   case phase of
     Idle:
       begin
-        if DetectTaxiStart(Time64, Fusion, PullUpDelay) then
+        Fusion_Result := 0.0;
+        if DetectTaxiStart(Time64, Fusion) then
         begin
           // Début roulage détecté
-          if (currFlight.TaxiStart = 0) { or (Time64 > currFlight.TaxiStart) } then
+          if (currFlight.TaxiStart = 0) then
           begin
             currFlight.TaxiStart := Time64;
             currFlight.idxTaxiStart := Index;
             Flights[flightIdx] := currFlight;
+            phase := TaxiConfirm;
           end;
-          if ((Time64 - currFlight.TaxiStart) / 1000.0 >= PullUpDelay) then
-          begin
-            phase := Taxi;
-            Writeln(ResultFile, Time64 / 1000.0:8:3, ',', 'Taxi');
-            Fusion_Coef[1] := 1;
-            Fusion_Coef[2] := 1;
-          end;
-        end
-        else if ((Time64 - currFlight.TaxiStart) / 1000.0 < PullUpDelay) then
-        begin
-          currFlight.TaxiStart := 0;
         end;
 
       end;
-
+    TaxiConfirm:
+      begin
+        Fusion_Result := IAxh + Iazh;
+        if ((Time64 - currFlight.TaxiStart) / 1000.0 >= PullUpDelay) then
+          if (Fusion_Result < IntegratorThreshold) or ((Time64 - currFlight.TaxiStart) / 1000.0 >= 2.0 * PullUpDelay { TakeOffTimeOut } )then
+          begin
+            phase := Idle;
+            currFlight.TaxiStart := 0;
+            Flights[flightIdx] := currFlight;
+          end
+          else
+          begin
+            phase := Taxi;
+            Writeln(ResultFile, (Time64 / 1000.0) - PullUpDelay:8:3, ',', 'Taxi');
+          end;
+      end;
     Taxi:
       if DetectTakeOff(Time64, Fusion, Deceleration, PullUpDelay) then
       begin
+        Fusion_Result := 0.0;
         currFlight.TakeOff := Time64;
         currFlight.idxTakeOff := Index;
         Flights[flightIdx] := currFlight;
         phase := Air;
+        Writeln(ResultFile, Time64 / 1000.0:8:3, 'Air');
         Fusion_Coef[0] := StrToInt(ConfForm.w1LabeledEdit.Text);
         Fusion_Coef[1] := StrToInt(ConfForm.w2LabeledEdit.Text);
         Fusion_Coef[2] := StrToInt(ConfForm.w3LabeledEdit.Text);
         Fusion_Coef[3] := StrToInt(ConfForm.w4LabeledEdit.Text);
-        Writeln(ResultFile, Time64 / 1000.0:8:3, 'Air')
       end;
 
     Air:
-      if DetectTouchDown(Time64, Fusion) then
+      if DetectTouchDown(Time64, Fusion) and ((Time64 - currFlight.TakeOff) / 1000.0 > 100.0) then
       begin
         currFlight.TouchDown := Time64;
         currFlight.idxTouchDown := Index;
@@ -613,22 +632,26 @@ begin
         currFlight.idxTaxiStop := Index;
         // Ajouter le vol détecté
         Flights[flightIdx] := currFlight;
-        flightIdx := flightIdx + 1;
-        setlength(Flights, flightIdx + 1);
-        // Repart en Idle pour vol suivant s’il y en a
         phase := Idle;
-        Writeln(ResultFile, Time64 / 1000.0:8:3, ',', 'Idle');
-        currFlight.TaxiStart := 0;
-        currFlight.TakeOff := 0;
-        currFlight.TouchDown := 0;
-        currFlight.TaxiStop := 0;
-        currFlight.idxTaxiStart := 0;
-        currFlight.idxTakeOff := 0;
-        currFlight.idxTouchDown := 0;
-        currFlight.idxTaxiStop := 0;
-        Flights[flightIdx] := currFlight;
-        Fusion_Coef[0] := 1;
-        Fusion_Coef[3] := 1;
+        Writeln(ResultFile, Time64 / 1000.0:8:3, ',', 'Landing');
+        // Attente d(un nouveau départ
+        if (Time64 - currFlight.TaxiStop) / 1000.0 > NewFlightDelay then
+        begin
+          flightIdx := flightIdx + 1;
+          setlength(Flights, flightIdx + 1);
+          // Repart en Idle pour vol suivant s’il y en a
+          currFlight.TaxiStart := 0;
+          currFlight.TakeOff := 0;
+          currFlight.TouchDown := 0;
+          currFlight.TaxiStop := 0;
+          currFlight.idxTaxiStart := 0;
+          currFlight.idxTakeOff := 0;
+          currFlight.idxTouchDown := 0;
+          currFlight.idxTaxiStop := 0;
+          Flights[flightIdx] := currFlight;
+          Fusion_Coef[0] := 1;
+          Fusion_Coef[3] := 1;
+        end;
       end;
   end;
 end;
@@ -815,7 +838,7 @@ begin
   // First step : Flight status determination
   // Looking for flight status
   Var
-    Pitch, Ax, axh, ax_abs, Temps, Fusion_Result: Extended;
+    Pitch, Ax, Ay, axh, ax_abs, Temps, Fusion_Result: Extended;
   for i := 0 to High(Samples) do // Scanning throw all the data
   begin
     if (Samples[i].Acc.Success) and (Samples[i].Time.Success_t) then // If accelerations are valid
@@ -826,6 +849,7 @@ begin
       // deltaT:=0.05;
       nff := -Samples[i].Acc.az * Repere; // Taking account of the frame NED or not
       Ax := Samples[i].Acc.Ax * Gravity;
+      Ay := Samples[i].Acc.Ay * Gravity;
       Pitch := Samples[i].Att.Pitch;
       ax_abs := Ax * cos(Pitch) + (nff - 1) * Gravity * sin(Pitch);
       ax_AB.ABupdate(deltaT, ax_abs);
@@ -856,43 +880,71 @@ begin
             nfh := Abs(HighPass_Filter2(HPBuf2, nff)); // Butterworth order 2
           2:
             nfh := Abs(HighPass_Filter4(HPBuf4, az_AB.ABprim)); // Butterworth order 4
+          3:
+            nfh := Abs(HighPass_Filter4(THPBuf4z, az_AB.ABprim)); // Butterworth order 4
         end;
         AddSample(BufAzh, nfh); // add the absolute value of the butterworth output
         StdDevValueAzh := ComputeStdDev(Temps, BufAzh);
 
-        axh := Abs(THighPass_Filter4(HPBuf4, Ax)); // Butterworth order 4
+        axh := Abs(THighPass_Filter4(THPBuf4x, Ax)); // Butterworth order 4
         AddSample(BufAxh, axh); // add the absolute value of the butterworth output
         StdDevValueAxh := ComputeStdDev(Temps, BufAxh);
         // ax_AB.ABupdate(deltaT, nfh);
 
         // inFlight_Determination
-        DetectFlights(i, Samples[i].Time.TimeMs, Ax-1, StdDevValueAxh, StdDevValueAzd, StdDevValueAzh, Fusion_Result, Fusion_Result_1, Flights, Fusion_Coef);
+        DetectFlights(i, Samples[i].Time.TimeMs, Ax - 1, IAxh, Iazh, StdDevValueAzh, Fusion_Result, Fusion_Result_1, Flights, Fusion_Coef);
         if GraphCheckBox.Checked and Not MainForm.FFTCheckBox.Checked then
         begin
           Series1.Title := 'inFlight';
-          Series2.Title := 'StdDevValueAxd';
-          Series3.Title := 'StdDevValueAzh';
-          Series6.Title := 'StdDevValueAzd';
-          Series7.Title := 'StdDevValueAxh';
+          // Series2.Title := 'StdDevValueAxd';
+          // Series3.Title := 'StdDevValueAzh';
+          Series3.Title := 'IAxh';
+          // Series6.Title := 'StdDevValueAzd';
+          Series6.Title := 'IAzh';
+          Series7.Title := 'StdDevValueAzh';
+          // Series7.Title := 'Ay';
           Series8.Title := 'Fusion';
           // Series1.Addxy(Temps, StdDevValueAxh);
-          Series2.Addxy(Temps, StdDevValueAxd);
-          Series3.Addxy(Temps, StdDevValueAzh); // purple curve
-          Series6.Addxy(Temps, StdDevValueAzd); // black curve
-          Series7.Addxy(Temps, StdDevValueAxh); // black curve
+          // Series2.Addxy(Temps, StdDevValueAxd);
+          // Series3.Addxy(Temps, StdDevValueAzh); // purple curve
+          // Series6.Addxy(Temps, StdDevValueAzd); // black curve
+          // Series7.Addxy(Temps, StdDevValueAxh); // black curve
+          Series7.Addxy(Temps, StdDevValueAzh); // black curve
           Series8.Addxy(Temps, Fusion_Result_1); // red curve
-          // Series3.Addxy(Temps, (ax_AB.ABfilt)); // purple curve
-          // Series6.Addxy(Temps, nff); // blue curve
+          Series3.Addxy(Temps, (IAxh)); // purple curve
+          Series6.Addxy(Temps, Iazh); // blue curve
           // Series3.Addxy(Temps, StdDevValueAzh,'',clPurple; // purple curve
           case phase of
             Idle:
-              Series1.Addxy(Temps, 0);
+              begin
+                Series1.Addxy(Temps, 0);
+                IAxh := 0.0;
+                Iazh := 0.0;
+              end;
+            TaxiConfirm:
+              begin
+                Series1.Addxy(Temps, 1);
+                IAxh := IAxh + StdDevValueAxh * 0.5;
+                Iazh := Iazh + StdDevValueAzh * 0.5;
+              end;
             Taxi:
-              Series1.Addxy(Temps, 1);
+              begin
+                Series1.Addxy(Temps, 2);
+                IAxh := IAxh + StdDevValueAxh * 0.5;
+                Iazh := Iazh + StdDevValueAzh * 0.5;
+              end;
             Air:
-              Series1.Addxy(Temps, 2);
+              begin
+                Series1.Addxy(Temps, 3);
+                IAxh := 0.0;
+                Iazh := 0.0;
+              end;
             Taxi2:
-              Series1.Addxy(Temps, 3);
+              begin
+                Series1.Addxy(Temps, 4);
+                IAxh := IAxh + axh * 0.05;
+                Iazh := 0.0;
+              end;
           end;
         end;
       end;
@@ -905,7 +957,7 @@ begin
   end;
   // Summing the total flight time
   FlightTime := 0.0;
-  For i := 0 to High(Flights) - 1 do // Scanning of the flights inside the record
+  For i := 0 to High(Flights) do // Scanning of the flights inside the record
     FlightTime := FlightTime + Flights[i].FlightTime / 3600000.0; // addinf partial flight time and convert in hour
   ProgressBar1.Position := 40;
   QueryPerformanceCounter(EndCount);
@@ -916,7 +968,7 @@ begin
   QueryPerformanceCounter(StartCount);
   RunningLabel.Caption := 'Averaging';
   Application.ProcessMessages;
-  for j := 0 to High(Flights) - 1 do // Scanning of the flights inside the record
+  for j := 0 to High(Flights) do // Scanning of the flights inside the record
     for i := Flights[j].idxTakeOff to Flights[j].idxTouchDown do // flights only are processed
     begin
       if Samples[i].Acc.Success then
@@ -946,59 +998,59 @@ begin
   QueryPerformanceCounter(StartCount);
   RunningLabel.Caption := 'Occuring';
   Application.ProcessMessages;
-  if  High(Flights)>0 then
-      begin
-  for j := 0 to High(Flights) - 1 do // Scanning of the flights inside the record
-    for i := Flights[j].idxTakeOff to Flights[j].idxTouchDown do // flights only are processed
-    begin
-      Temps := Samples[i].Time.TimeMs / 3600.0;
-      Transitions_Computation(Samples[i].Time.TimeMs / 3600, Samples[i].Acc.az);
-    end;
-  ProgressBar1.Position := 80;
-  QueryPerformanceCounter(EndCount);
-  ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
-  Writeln(ResultFile, Format('Durée du exploite data: %.6f secondes', [ElapsedTime]));
-
-  // Fourth step : Markov matrixes elaboration
-  QueryPerformanceCounter(StartCount);
-  Writeln(ResultFile, 'StartTime (s) :', Flights[0].TaxiStart / 3600000:10:3, ' EndTime (h) :', Flights[High(Flights) - 1].TaxiStop / 3600000:10:3, ' FlightTime (h) :', FlightTime:10:3);
-  Writeln(ResultFile, ' Classes (g)', #9, 'occurs');
-  Matrixes_elaboration; // Markov matrixes computation
-  // Kossira'curve and Memo1 title
-  Series5.Title := FileName;
-  Memo1.Lines.Add('Kossira');
-  Memo1.Lines.Add(Format('From %8.1f  to %8.1f h.', [Flights[0].TaxiStart / 3600000, Flights[High(Flights) - 1].TaxiStop / 3600000]));
-  Memo1.Lines.Add('Class (g)' + #9'Occurences (-)');
-
-  // Fifth ans last step : Kossira estimation and gain factor R
-  RunningLabel.Caption := 'Kossira';
-  R := R_Calculation(FlightTime, Spectrum); // R coefficient computation
-  for j := 0 to Taille_Spectrum do
+  if High(Flights) >= 0 then
   begin
-    Occurs := Spectrum[j] * (6000.0) / (FlightTime); // Normalisation for 6000h to be compared with the Kossira reference
-    Classes := ((j + 0.5) * QuantumRough + LowG);
-    Writeln(ResultFile, Classes:8:3, #9, Spectrum[j]:12);
-    if Spectrum[j] <> 0 then
+    for j := 0 to High(Flights) do // Scanning of the flights inside the record
+      for i := Flights[j].idxTakeOff to Flights[j].idxTouchDown do // flights only are processed
+      begin
+        Temps := Samples[i].Time.TimeMs / 3600.0;
+        Transitions_Computation(Samples[i].Time.TimeMs / 3600, Samples[i].Acc.az);
+      end;
+    ProgressBar1.Position := 80;
+    QueryPerformanceCounter(EndCount);
+    ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
+    Writeln(ResultFile, Format('Durée du exploite data: %.6f secondes', [ElapsedTime]));
+
+    // Fourth step : Markov matrixes elaboration
+    QueryPerformanceCounter(StartCount);
+    Writeln(ResultFile, 'StartTime (s) :', Flights[0].TaxiStart / 3600000:10:3, ' EndTime (h) :', Flights[High(Flights)].TaxiStop / 3600000:10:3, ' FlightTime (h) :', FlightTime:10:3);
+    Writeln(ResultFile, ' Classes (g)', #9, 'occurs');
+    Matrixes_elaboration; // Markov matrixes computation
+    // Kossira'curve and Memo1 title
+    Series5.Title := FileName;
+    Memo1.Lines.Add('Kossira');
+    Memo1.Lines.Add(Format('From %8.1f  to %8.1f h.', [Flights[0].TaxiStart / 3600000, Flights[High(Flights)].TaxiStop / 3600000]));
+    Memo1.Lines.Add('Class (g)' + #9'Occurences (-)');
+
+    // Fifth ans last step : Kossira estimation and gain factor R
+    RunningLabel.Caption := 'Kossira';
+    R := R_Calculation(FlightTime, Spectrum); // R coefficient computation
+    for j := 0 to Taille_Spectrum do
     begin
-      spectrumStringGrid.Cells[1, Taille_Spectrum + 1 - j] := IntToStr(Spectrum[j]);
-      Series5.Addxy(Occurs, Classes);
-      Memo1.Lines.Add(Format('%8.2f' + #9 + '%8.0f', [Classes, Occurs]));
+      Occurs := Spectrum[j] * (6000.0) / (FlightTime); // Normalisation for 6000h to be compared with the Kossira reference
+      Classes := ((j + 0.5) * QuantumRough + LowG);
+      Writeln(ResultFile, Classes:8:3, #9, Spectrum[j]:12);
+      if Spectrum[j] <> 0 then
+      begin
+        spectrumStringGrid.Cells[1, Taille_Spectrum + 1 - j] := IntToStr(Spectrum[j]);
+        Series5.Addxy(Occurs, Classes);
+        Memo1.Lines.Add(Format('%8.2f' + #9 + '%8.0f', [Classes, Occurs]));
+      end;
     end;
-  end;
-  { for j := 0 to 19 do
-    Series4.Addxy((Kossira_6000h[1, j]), (Kossira_6000h[0, j])); // Kossira reference plot }
-  FlightTimeLabel.Caption := Format('Flight time = %5.1f h', [FlightTime]);
-  RLabel.Caption := Format('R = %8.1f', [R]);
-  Writeln(ResultFile, 'R = ', R:5:1);
-  QueryPerformanceCounter(EndCount);
-  ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
-  Writeln(ResultFile, Format('Durée du Kossira: %.6f secondes', [ElapsedTime]));
-  QueryPerformanceCounter(StartCount);
-  // Loading the content of all memo(s)
-  Memo1.Lines.EndUpdate;
-  Memo2.Lines.EndUpdate;
-  Memo3.Lines.EndUpdate;
-  Memo4.Lines.EndUpdate;
+    { for j := 0 to 19 do
+      Series4.Addxy((Kossira_6000h[1, j]), (Kossira_6000h[0, j])); // Kossira reference plot }
+    FlightTimeLabel.Caption := Format('Flight time = %5.1f h', [FlightTime]);
+    RLabel.Caption := Format('R = %8.1f', [R]);
+    Writeln(ResultFile, 'R = ', R:5:1);
+    QueryPerformanceCounter(EndCount);
+    ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
+    Writeln(ResultFile, Format('Durée du Kossira: %.6f secondes', [ElapsedTime]));
+    QueryPerformanceCounter(StartCount);
+    // Loading the content of all memo(s)
+    Memo1.Lines.EndUpdate;
+    Memo2.Lines.EndUpdate;
+    Memo3.Lines.EndUpdate;
+    Memo4.Lines.EndUpdate;
   end;
   RunningLabel.Caption := 'Complete';
   ProgressBar1.Position := 100;

@@ -72,7 +72,7 @@ object MainForm: TMainForm
       EditLabel.Margins.Bottom = 6
       EditLabel.Caption = 'FileName'
       TabOrder = 0
-      Text = 'D:\Data\Jean_Luc_Derouineau\AESA\ASH25\WIT00014.TXT'
+      Text = 'D:\Data\Jean_Luc_Derouineau\AESA\ASH25\WIT00060.TXT'
     end
     object RunButton: TButton
       Left = 1323

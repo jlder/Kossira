@@ -3,23 +3,24 @@ object ConfForm: TConfForm
   Top = 0
   Caption = 'Configuration'
   ClientHeight = 444
-  ClientWidth = 626
+  ClientWidth = 653
   Color = clBtnFace
   ParentFont = True
   OnCreate = FormCreate
   DesignSize = (
-    626
+    653
     444)
   TextHeight = 15
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 626
+    Width = 653
     Height = 81
     Align = alTop
     Caption = 'Discretization'
     TabOrder = 0
     VerticalAlignment = taAlignTop
+    ExplicitWidth = 626
     object Label1: TLabel
       Left = 432
       Top = 24
@@ -91,12 +92,13 @@ object ConfForm: TConfForm
   object Panel2: TPanel
     Left = 0
     Top = 81
-    Width = 626
+    Width = 653
     Height = 128
     Align = alTop
     Caption = 'Filtering'
     TabOrder = 1
     VerticalAlignment = taAlignTop
+    ExplicitWidth = 626
     object dtLabeledEdit: TLabeledEdit
       Left = 16
       Top = 33
@@ -225,18 +227,19 @@ object ConfForm: TConfForm
       Left = 416
       Top = 6
       Width = 105
-      Height = 99
+      Height = 116
       Caption = 'ButterWorth order'
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
       Font.Height = 16
       Font.Name = 'Segoe UI'
       Font.Style = []
-      ItemIndex = 2
+      ItemIndex = 3
       Items.Strings = (
         'Order 0'
         'Order2'
-        'Order4')
+        'Order4'
+        'THOrder4')
       ParentFont = False
       TabOrder = 9
     end
@@ -252,16 +255,17 @@ object ConfForm: TConfForm
   object Panel3: TPanel
     Left = 0
     Top = 209
-    Width = 626
+    Width = 653
     Height = 80
     Align = alTop
     Caption = 'Takeoff and landing threshold'
     TabOrder = 3
     VerticalAlignment = taAlignTop
+    ExplicitWidth = 626
     object DecelerationLabeledEdit: TLabeledEdit
-      Left = 16
+      Left = 368
       Top = 42
-      Width = 73
+      Width = 40
       Height = 23
       EditLabel.Width = 84
       EditLabel.Height = 15
@@ -270,9 +274,9 @@ object ConfForm: TConfForm
       Text = '0.2'
     end
     object PullUpLabeledEdit: TLabeledEdit
-      Left = 152
+      Left = 24
       Top = 42
-      Width = 73
+      Width = 49
       Height = 23
       EditLabel.Width = 52
       EditLabel.Height = 15
@@ -281,7 +285,7 @@ object ConfForm: TConfForm
       Text = '1.0'
     end
     object PullUpDelayLabeledEdit: TLabeledEdit
-      Left = 296
+      Left = 96
       Top = 42
       Width = 73
       Height = 23
@@ -289,22 +293,55 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Pullup delay (s)'
       TabOrder = 2
-      Text = '1'
+      Text = '10.0'
     end
     object DecDelayLabeledEdit: TLabeledEdit
-      Left = 432
+      Left = 471
       Top = 42
-      Width = 73
+      Width = 41
       Height = 23
-      EditLabel.Width = 113
+      EditLabel.Width = 58
       EditLabel.Height = 15
-      EditLabel.Caption = 'Deceleration delay (s)'
+      EditLabel.Caption = 'timeout (s)'
       TabOrder = 3
       Text = '20'
     end
+    object TouchLabeledEdit: TLabeledEdit
+      Left = 288
+      Top = 42
+      Width = 49
+      Height = 23
+      EditLabel.Width = 50
+      EditLabel.Height = 15
+      EditLabel.Caption = 'Touch (g)'
+      TabOrder = 4
+      Text = '0.75'
+    end
+    object IntegratorThresholdLabeledEdit: TLabeledEdit
+      Left = 200
+      Top = 42
+      Width = 49
+      Height = 23
+      EditLabel.Width = 70
+      EditLabel.Height = 15
+      EditLabel.Caption = 'Integrator (g)'
+      TabOrder = 5
+      Text = '5'
+    end
+    object NewFlightDelayLabeledEdit: TLabeledEdit
+      Left = 567
+      Top = 42
+      Width = 41
+      Height = 23
+      EditLabel.Width = 70
+      EditLabel.Height = 15
+      EditLabel.Caption = 'InterFlight (s)'
+      TabOrder = 6
+      Text = '500'
+    end
   end
   object RepereRadioGroup: TRadioGroup
-    Left = 447
+    Left = 474
     Top = 378
     Width = 123
     Height = 36
@@ -334,6 +371,7 @@ object ConfForm: TConfForm
     ShowFrame = False
     TabOrder = 4
     StyleName = 'Windows'
+    ExplicitLeft = 447
   end
   object DataCheckListBox: TCheckListBox
     Left = 224
@@ -351,12 +389,13 @@ object ConfForm: TConfForm
   object Panel4: TPanel
     Left = 0
     Top = 289
-    Width = 626
+    Width = 653
     Height = 80
     Align = alTop
     Caption = 'Fusion parameters'
     TabOrder = 6
     VerticalAlignment = taAlignTop
+    ExplicitWidth = 626
     object w1LabeledEdit: TLabeledEdit
       Left = 16
       Top = 42
