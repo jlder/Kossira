@@ -26,7 +26,6 @@ type
     LabeledEdit2: TLabeledEdit;
     LabeledEdit3: TLabeledEdit;
     LabeledEdit4: TLabeledEdit;
-    ShowDataCheckBox: TCheckBox;
     Panel3: TPanel;
     DecelerationLabeledEdit: TLabeledEdit;
     PullUpLabeledEdit: TLabeledEdit;
@@ -43,6 +42,12 @@ type
     TouchLabeledEdit: TLabeledEdit;
     IntegratorThresholdLabeledEdit: TLabeledEdit;
     NewFlightDelayLabeledEdit: TLabeledEdit;
+    ShowDataCheckBox: TCheckBox;
+    PullUpTimeOutLabeledEdit: TLabeledEdit;
+    IntegDelayLabeledEdit: TLabeledEdit;
+    MinFlightDurationLabeledEdit: TLabeledEdit;
+    IntegTouchDelayLabeledEdit: TLabeledEdit;
+    TouchTimeOutLabeledEdit: TLabeledEdit;
     procedure ValidationButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
   private

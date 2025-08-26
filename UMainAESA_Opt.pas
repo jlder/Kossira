@@ -142,8 +142,10 @@ var
   flightIdx: Integer;
   GyroPresent, AttPresent: Boolean;
   StdDevValueAxd, StdDevValueAxh, StdDevValueAzd, StdDevValueAzh: Extended;
-  PullUp, IntegratorThreshold, Deceleration, Touching, PullUpDelay, DecelerationDelay, NewFlightDelay: Extended;
-  phase: (Idle, Taxi, TaxiConfirm, Air, Taxi2);
+  PullUp, PullUpDelay, PullUpTimeOut:Extended;
+  IntegratorThreshold, IntegDelay:Extended;
+  Deceleration, DecelerationDelay,Touching, IntegTouchDelay, TouchTimeOut,MinFlightDuration,NewFlightDelay: Extended;
+  phase: (Idle, Taxi, TaxiConfirm, Air, Taxi2, Landing);
   Velocity: Extended;
   Offset: Extended; // Offset for avoiding velocity error
 
@@ -169,6 +171,7 @@ var // Butterworth variables
   THPBuf4z: THighPassFilter4;
   nfh: Extended;
   IAxh, Iazh: Extended;
+  Temps0:Extended;
 
 var // Time profiler variables
   StartCount, EndCount, Frequency: Int64;
@@ -274,6 +277,7 @@ begin
   // Compute nq_avg
   nff_sum := 0;
   FlightTime := 0.0;
+  Temps0:=0.0;
   deltaT := StrToFloat(ConfForm.dtLabeledEdit.Text);
   ax_AB := TAlphaBeta.Create(NAccelx, deltaT, AccelOutlier, AccelMin, AccelMax);
   az_AB := TAlphaBeta.Create(NAccel, deltaT, AccelOutlier, AccelMin, AccelMax);
@@ -331,11 +335,16 @@ begin
   Flights[0].idxTaxiStop := 0;
 
   PullUp := StrToFloat(ConfForm.PullUpLabeledEdit.Text);
-  IntegratorThreshold := StrToFloat(ConfForm.IntegratorThresholdLabeledEdit.Text);
   PullUpDelay := StrToFloat(ConfForm.PullUpDelayLabeledEdit.Text);
-  Touching := StrToFloat(ConfForm.TouchLabeledEdit.Text);
+  PullUpTimeOut := StrToFloat(ConfForm.PullUpTimeOutLabeledEdit.Text);
+  IntegratorThreshold := StrToFloat(ConfForm.IntegratorThresholdLabeledEdit.Text);
+  IntegDelay := StrToFloat(ConfForm.IntegDelayLabeledEdit.Text);
   Deceleration := StrToFloat(ConfForm.DecelerationLabeledEdit.Text);
   DecelerationDelay := StrToFloat(ConfForm.DecDelayLabeledEdit.Text);
+  MinFlightDuration := StrToFloat(ConfForm.MinFlightDurationLabeledEdit.Text);
+  Touching := StrToFloat(ConfForm.TouchLabeledEdit.Text);
+  IntegTouchDelay := StrToFloat(ConfForm.IntegTouchDelayLabeledEdit.Text);
+  TouchTimeOut := StrToFloat(ConfForm.TouchTimeOutLabeledEdit.Text);
   NewFlightDelay := StrToFloat(ConfForm.NewFlightDelayLabeledEdit.Text);
   QueryPerformanceCounter(EndCount);
   ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
@@ -540,21 +549,21 @@ var
   end;
   Function DetectTakeOff(Time64: Int64; Fusion, Deceleration, PullUpDelay: Extended): Boolean;
   begin
-    if (Fusion < Deceleration) and ((Time64 - currFlight.TakeOff) / 1000.0 > PullUpDelay) then
+    if (Fusion < Deceleration) and ((Time64 - currFlight.TakeOff) / 1000.0 > DecelerationDelay) then
       DetectTakeOff := True
     else
       DetectTakeOff := False;
   end;
   Function DetectTouchDown(Time64: Int64; Fusion: Extended): Boolean;
   begin
-    if (Fusion > Touching) and ((Time64 - currFlight.TakeOff) / 1000.0 > 10.0) then
+    if (Fusion > Touching) and ((Time64 - currFlight.TakeOff) / 1000.0 > IntegTouchDelay) then
       DetectTouchDown := True
     else
       DetectTouchDown := False;
   end;
   Function DetectTaxiStop(Time64: Int64; Fusion, DecelerationDelay: Extended): Boolean;
   begin
-    if (Fusion < Deceleration) and ((Time64 - currFlight.TouchDown) / 1000.0 > DecelerationDelay) then
+    if (Fusion < Deceleration) or ((Time64 - currFlight.TouchDown) / 1000.0 > TouchTimeOut) then
       DetectTaxiStop := True
     else
       DetectTaxiStop := False;
@@ -579,6 +588,7 @@ begin
             currFlight.idxTaxiStart := Index;
             Flights[flightIdx] := currFlight;
             phase := TaxiConfirm;
+            Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi confirmed?');
           end;
         end;
 
@@ -586,8 +596,8 @@ begin
     TaxiConfirm:
       begin
         Fusion_Result := IAxh + Iazh;
-        if ((Time64 - currFlight.TaxiStart) / 1000.0 >= PullUpDelay) then
-          if (Fusion_Result < IntegratorThreshold) or ((Time64 - currFlight.TaxiStart) / 1000.0 >= 2.0 * PullUpDelay { TakeOffTimeOut } )then
+        if ((Time64 - currFlight.TaxiStart) / 1000.0 >= IntegDelay) then
+          if (Fusion_Result < IntegratorThreshold) or ((Time64 - currFlight.TaxiStart) / 1000.0 >= PullUpTimeOut ) then
           begin
             phase := Idle;
             currFlight.TaxiStart := 0;
@@ -615,7 +625,7 @@ begin
       end;
 
     Air:
-      if DetectTouchDown(Time64, Fusion) and ((Time64 - currFlight.TakeOff) / 1000.0 > 100.0) then
+      if DetectTouchDown(Time64, Fusion) and ((Time64 - currFlight.TakeOff) / 1000.0 > MinFlightDuration) then
       begin
         currFlight.TouchDown := Time64;
         currFlight.idxTouchDown := Index;
@@ -632,26 +642,28 @@ begin
         currFlight.idxTaxiStop := Index;
         // Ajouter le vol détecté
         Flights[flightIdx] := currFlight;
-        phase := Idle;
+        phase := Landing;
         Writeln(ResultFile, Time64 / 1000.0:8:3, ',', 'Landing');
-        // Attente d(un nouveau départ
-        if (Time64 - currFlight.TaxiStop) / 1000.0 > NewFlightDelay then
-        begin
-          flightIdx := flightIdx + 1;
-          setlength(Flights, flightIdx + 1);
-          // Repart en Idle pour vol suivant s’il y en a
-          currFlight.TaxiStart := 0;
-          currFlight.TakeOff := 0;
-          currFlight.TouchDown := 0;
-          currFlight.TaxiStop := 0;
-          currFlight.idxTaxiStart := 0;
-          currFlight.idxTakeOff := 0;
-          currFlight.idxTouchDown := 0;
-          currFlight.idxTaxiStop := 0;
-          Flights[flightIdx] := currFlight;
-          Fusion_Coef[0] := 1;
-          Fusion_Coef[3] := 1;
-        end;
+      end;
+    Landing:
+      // Attente d'un nouveau départ
+      if (Time64 - currFlight.TaxiStop) / 1000.0 > NewFlightDelay then
+      begin
+        phase := idle;
+        flightIdx := flightIdx + 1;
+        setlength(Flights, flightIdx + 1);
+        // Repart en Idle pour vol suivant s’il y en a
+        currFlight.TaxiStart := 0;
+        currFlight.TakeOff := 0;
+        currFlight.TouchDown := 0;
+        currFlight.TaxiStop := 0;
+        currFlight.idxTaxiStart := 0;
+        currFlight.idxTakeOff := 0;
+        currFlight.idxTouchDown := 0;
+        currFlight.idxTaxiStop := 0;
+        Flights[flightIdx] := currFlight;
+        Fusion_Coef[0] := 1;
+        Fusion_Coef[3] := 1;
       end;
   end;
 end;
@@ -838,17 +850,20 @@ begin
   // First step : Flight status determination
   // Looking for flight status
   Var
-    Pitch, Ax, Ay, axh, ax_abs, Temps, Fusion_Result: Extended;
+    Pitch, Ax, Ay, axh, ax_abs, Temps, Fusion_Result,Ax0: Extended;
+  ax0:=0.0;
   for i := 0 to High(Samples) do // Scanning throw all the data
   begin
     if (Samples[i].Acc.Success) and (Samples[i].Time.Success_t) then // If accelerations are valid
     begin
       Temps := Samples[i].Time.Temps;
+      If Temps0=0.0 then Temps0:=Temps;
       deltaT := (Samples[i].Time.Temps - Samples[i].Time.Temps_1);
       // Writeln(ResultFile,Temps:8:3,',',deltaT:8:3);
       // deltaT:=0.05;
       nff := -Samples[i].Acc.az * Repere; // Taking account of the frame NED or not
       Ax := Samples[i].Acc.Ax * Gravity;
+      If (Temps-Temps0<10) then Ax0:=0.9*Ax0+0.1*Ax;
       Ay := Samples[i].Acc.Ay * Gravity;
       Pitch := Samples[i].Att.Pitch;
       ax_abs := Ax * cos(Pitch) + (nff - 1) * Gravity * sin(Pitch);
@@ -892,7 +907,7 @@ begin
         // ax_AB.ABupdate(deltaT, nfh);
 
         // inFlight_Determination
-        DetectFlights(i, Samples[i].Time.TimeMs, Ax - 1, IAxh, Iazh, StdDevValueAzh, Fusion_Result, Fusion_Result_1, Flights, Fusion_Coef);
+        DetectFlights(i, Samples[i].Time.TimeMs, Ax-Ax0, IAxh, Iazh, StdDevValueAzh, Fusion_Result, Fusion_Result_1, Flights, Fusion_Coef);
         if GraphCheckBox.Checked and Not MainForm.FFTCheckBox.Checked then
         begin
           Series1.Title := 'inFlight';
@@ -943,6 +958,12 @@ begin
               begin
                 Series1.Addxy(Temps, 4);
                 IAxh := IAxh + axh * 0.05;
+                Iazh := 0.0;
+              end;
+            Landing:
+              begin
+                Series1.Addxy(Temps, 5);
+                IAxh := 0.0;
                 Iazh := 0.0;
               end;
           end;
