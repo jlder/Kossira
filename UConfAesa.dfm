@@ -240,7 +240,7 @@ object ConfForm: TConfForm
       Font.Height = 16
       Font.Name = 'Segoe UI'
       Font.Style = []
-      ItemIndex = 3
+      ItemIndex = 2
       Items.Strings = (
         'Order 0'
         'Order2'
@@ -260,7 +260,7 @@ object ConfForm: TConfForm
     TabOrder = 2
     VerticalAlignment = taAlignTop
     object DecelerationLabeledEdit: TLabeledEdit
-      Left = 224
+      Left = 225
       Top = 42
       Width = 40
       Height = 23
@@ -268,7 +268,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Deceleration (g)'
       TabOrder = 0
-      Text = '0.2'
+      Text = '0.15'
     end
     object PullUpLabeledEdit: TLabeledEdit
       Left = 24
@@ -279,7 +279,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Pullup (g)'
       TabOrder = 1
-      Text = '1.0'
+      Text = '0.5'
     end
     object PullUpDelayLabeledEdit: TLabeledEdit
       Left = 24
@@ -312,7 +312,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Touch (g)'
       TabOrder = 4
-      Text = '0.75'
+      Text = '0.5'
     end
     object IntegratorThresholdLabeledEdit: TLabeledEdit
       Left = 128
@@ -446,7 +446,6 @@ object ConfForm: TConfForm
     Caption = 'Fusion parameters'
     TabOrder = 5
     VerticalAlignment = taAlignTop
-    ExplicitTop = 337
     object w1LabeledEdit: TLabeledEdit
       Left = 16
       Top = 42
@@ -456,7 +455,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'w1'
       TabOrder = 0
-      Text = '1'
+      Text = '0'
     end
     object w2LabeledEdit: TLabeledEdit
       Left = 152

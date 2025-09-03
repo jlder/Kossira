@@ -202,6 +202,7 @@ object MainForm: TMainForm
         DefaultCanvas = ''
         ColorPaletteIndex = 13
         object Series3: TLineSeries
+          HoverElement = [heCurrent]
           Selected.Hover.Visible = False
           SeriesColor = clFuchsia
           Title = 'StdDevValueAzh'
@@ -215,6 +216,7 @@ object MainForm: TMainForm
           YValues.Order = loNone
         end
         object Series6: TLineSeries
+          HoverElement = [heCurrent]
           Selected.Hover.Visible = False
           SeriesColor = 16744448
           Title = 'StdDevValueAzd'
@@ -228,6 +230,7 @@ object MainForm: TMainForm
           YValues.Order = loNone
         end
         object Series1: TLineSeries
+          HoverElement = [heCurrent]
           SeriesColor = clGreen
           Title = 'StdDevValueAxh'
           Brush.BackColor = clDefault
@@ -243,6 +246,7 @@ object MainForm: TMainForm
           YValues.Order = loNone
         end
         object Series2: TLineSeries
+          HoverElement = [heCurrent]
           SeriesColor = clRed
           Title = 'Ax (m/s'#178')'
           Brush.BackColor = clDefault
@@ -258,6 +262,7 @@ object MainForm: TMainForm
           YValues.Order = loNone
         end
         object Series7: TLineSeries
+          HoverElement = [heCurrent]
           SeriesColor = clBlack
           Title = 'Pitch (rd)'
           Brush.BackColor = clDefault
@@ -269,6 +274,7 @@ object MainForm: TMainForm
           YValues.Order = loNone
         end
         object Series8: TLineSeries
+          HoverElement = [heCurrent]
           SeriesColor = 4259584
           Brush.BackColor = clDefault
           Pointer.InflateMargins = True
@@ -363,6 +369,7 @@ object MainForm: TMainForm
         DefaultCanvas = ''
         ColorPaletteIndex = 13
         object Series4: TLineSeries
+          HoverElement = [heCurrent]
           Title = 'spectra KOSSIRA ICAS-82-2.8.2.pdf'
           Brush.BackColor = clDefault
           Pointer.InflateMargins = True
@@ -373,6 +380,7 @@ object MainForm: TMainForm
           YValues.Order = loNone
         end
         object Series5: TLineSeries
+          HoverElement = [heCurrent]
           SeriesColor = clRed
           Shadow.Visible = False
           Title = 'FileName'
