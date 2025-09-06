@@ -90,9 +90,10 @@ type
     Series3: TLineSeries;
     Series6: TLineSeries;
     Series1: TLineSeries;
-    Series2: TLineSeries;
     Series7: TLineSeries;
     Series8: TLineSeries;
+    Series2: TPointSeries;
+    DXLabeledEdit: TLabeledEdit;
     Procedure Initialisation(Sender: TObject);
     procedure RunButtonClick(Sender: TObject);
     procedure ConfButtonClick(Sender: TObject);
@@ -137,7 +138,6 @@ var
   FlightTime: Extended;
   Classes, Occurs: Extended;
   Spectrum: Table_Spectrum;
-  Repere: Integer; // 1 for ENU   , -1 for NED
   Flights: TFlights;
   flightIdx: Integer;
   GyroPresent, AttPresent: Boolean;
@@ -163,6 +163,7 @@ var
   Signal: array [0 .. WindowSize - 1] of TComplex;
   Fusion_Result_1: Extended;
   Fusion_Coef: TFusion_Coef;
+  DX:Integer;
 
 var // Butterworth variables
   HPBuf2: THighPassFilter2;
@@ -205,7 +206,7 @@ begin
   nq_1 := 0;
   slope_1 := 1;
   minmax := 1;
-  minmax_1 := 1;
+  minmax_1 := 16;
   // Configuration Recall
   ConfForm.ValidationButtonClick(Sender);
   ProgressBar1.Position := 0;
@@ -262,13 +263,14 @@ begin
   for i := 0 to Taille_Spectrum do
     Spectrum[i] := 0;
   Chart1.Axes.Left.Automatic := False;
-  Chart1.Axes.Left.Automatic := True;
+  // Chart1.Axes.Left.Automatic := True;
   Chart1.Axes.Left.Maximum := HighG;
   Chart1.Axes.Left.Minimum := LowG;
   Fusion_Coef[0] := 1;
   Fusion_Coef[1] := 0;
   Fusion_Coef[2] := 0;
   Fusion_Coef[3] := 1;
+  DX := StrToInt(DXLabeledEdit.Text);
   NAccel := StrToInt(ConfForm.NAccelLabeledEdit.Text);
   NAccelx := StrToInt(ConfForm.NAccelxLabeledEdit.Text);
   AccelOutlier := StrToFloat(ConfForm.OutlierLabeledEdit.Text);
@@ -598,7 +600,7 @@ begin
       begin
         Fusion_Result := IAxh + Iazh;
         if ((Time64 - currFlight.TaxiStart) / 1000.0 >= IntegDelay) then
-          //if (Fusion_Result < IntegratorThreshold) or ((Time64 - currFlight.TaxiStart) / 1000.0 >= PullUpTimeOut) then
+          // if (Fusion_Result < IntegratorThreshold) or ((Time64 - currFlight.TaxiStart) / 1000.0 >= PullUpTimeOut) then
           if (Fusion < Deceleration) or ((Time64 - currFlight.TaxiStart) / 1000.0 >= PullUpTimeOut) then
           begin
             phase := Idle;
@@ -743,7 +745,7 @@ Var
       Memo3.Lines.Add(Format('%5.3f' + #9 + '%4d', [Temps, N]));
     end;
     // only process data if difference between n and n_1 is larger than 1
-    if (Abs(N - n_1) > 1) then
+    if (Abs(N - n_1) > DX) then
     begin
       // low resolution quantification
       nq := trunc((nff - LowG) / QuantumRough);
@@ -754,6 +756,11 @@ Var
       if (nq_1 <> nq) then
       begin
         // look for min max by checking slope sign change
+        if GraphCheckBox.Checked then
+          begin
+          Series2.Title := 'nq';
+          Series2.Addxy(Temps, nq);
+          end;
         if ((nq - nq_1) > 0) then
           slope := 1
         else
@@ -768,10 +775,12 @@ Var
           // Display n and nq for min/max
           // Series1.AddXY(Temps, n * UnderSample div ClassNumbers);
           if GraphCheckBox.Checked then
-            // Series2.Addxy(Temps, nq);
-
-            // keep track of last minmax
-            minmax_1 := minmax;
+            begin
+            Series7.Title := 'minmax';
+            Series7.Addxy(Temps, minmax);
+            end;
+          // keep track of last minmax
+          minmax_1 := minmax;
         end;
         // keep track of last slope and nq
         slope_1 := slope;
@@ -859,14 +868,14 @@ begin
       If Temps0 = 0.0 then
         Temps0 := Temps;
       deltaT := (Samples[i].Time.Temps - Samples[i].Time.Temps_1);
-      nff := -Samples[i].Acc.az * Repere; // Taking account of the frame NED or not
+      nff := Samples[i].Acc.az; // Taking account of the frame NED or not
       nfh := Abs(HighPass_Filter4(HPBuf4, nff)); // Butterworth order 4
       AddSample(BufAzh, nfh); // add the absolute value of the butterworth output
       StdDevValueAzh := ComputeStdDev(Temps, BufAzh);
       if StdDevValueAzh > Maxnfh then
         Maxnfh := StdDevValueAzh;
-      Series7.Title := 'Maxnfh';
-      Series7.Addxy(Temps, Maxnfh); // black curve
+      Series6.Title := 'Maxnfh';
+      Series6.Addxy(Temps, Maxnfh); // black curve
     end
     else
     begin
@@ -899,7 +908,7 @@ begin
       deltaT := (Samples[i].Time.Temps - Samples[i].Time.Temps_1);
       // Writeln(ResultFile,Temps:8:3,',',deltaT:8:3);
       // deltaT:=0.05;
-      nff := -Samples[i].Acc.az * Repere; // Taking account of the frame NED or not
+      nff := Samples[i].Acc.az; // Taking account of the frame NED or not
       Ax := Samples[i].Acc.Ax * Gravity;
       If (Temps - Temps0 < 10) then
         Ax0 := 0.9 * Ax0 + 0.1 * Ax;
@@ -938,7 +947,7 @@ begin
             nfh := Abs(HighPass_Filter4(THPBuf4z, az_AB.ABprim)); // Butterworth order 4
         end;
         AddSample(BufAzh, nfh); // add the absolute value of the butterworth output
-        StdDevValueAzh := ComputeStdDev(Temps, BufAzh)/Maxnfh;
+        StdDevValueAzh := ComputeStdDev(Temps, BufAzh) / Maxnfh;
 
         axh := Abs(THighPass_Filter4(THPBuf4x, Ax)); // Butterworth order 4
         AddSample(BufAxh, axh); // add the absolute value of the butterworth output
@@ -951,22 +960,22 @@ begin
         begin
           Series1.Title := 'inFlight';
           // Series2.Title := 'StdDevValueAxd';
+          // Series7.Title := 'Ay';
           // Series3.Title := 'StdDevValueAzh';
           Series3.Title := 'AZ';
           // Series6.Title := 'StdDevValueAzd';
-          //Series6.Title := 'IAzh';
-          //Series7.Title := 'StdDevValueAzh';
-          // Series7.Title := 'Ay';
+          // Series6.Title := 'IAzh';
+          // Series7.Title := 'StdDevValueAzh';
           Series8.Title := 'StdDevValueAzh';
           // Series1.Addxy(Temps, StdDevValueAxh);
           // Series2.Addxy(Temps, StdDevValueAxd);
-           Series3.Addxy(Temps, nff,'',clpurple); // purple curve
+          Series3.Addxy(Temps, nff, '', clpurple); // purple curve
           // Series6.Addxy(Temps, StdDevValueAzd); // black curve
           // Series7.Addxy(Temps, StdDevValueAxh); // black curve
-          //Series7.Addxy(Temps, StdDevValueAzh); // black curve
+          // Series7.Addxy(Temps, StdDevValueAzh); // black curve
           Series8.Addxy(Temps, StdDevValueAzh); // red curve
-          //Series3.Addxy(Temps, (nff)); // purple curve
-          //Series6.Addxy(Temps, Iazh); // blue curve
+          // Series3.Addxy(Temps, (nff)); // purple curve
+          // Series6.Addxy(Temps, Iazh); // blue curve
           // Series3.Addxy(Temps, StdDevValueAzh,'',clPurple; // purple curve
           case phase of
             Idle:
@@ -1063,8 +1072,8 @@ begin
     for j := 0 to High(Flights) do // Scanning of the flights inside the record
       for i := Flights[j].idxTakeOff to Flights[j].idxTouchDown do // flights only are processed
       begin
-        Temps := Samples[i].Time.TimeMs / 3600.0;
-        Transitions_Computation(Samples[i].Time.TimeMs / 3600, Samples[i].Acc.az*repere);
+        Temps := Samples[i].Time.Temps;
+        Transitions_Computation(Temps, Samples[i].Acc.az);
       end;
     ProgressBar1.Position := 80;
     QueryPerformanceCounter(EndCount);

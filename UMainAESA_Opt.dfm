@@ -25,7 +25,7 @@ object MainForm: TMainForm
       1367
       49)
     object Label1: TLabel
-      Left = 784
+      Left = 864
       Top = 7
       Width = 38
       Height = 15
@@ -53,7 +53,7 @@ object MainForm: TMainForm
       Caption = 'FlightTime (h)'
     end
     object Label2: TLabel
-      Left = 784
+      Left = 864
       Top = 28
       Width = 38
       Height = 15
@@ -116,6 +116,17 @@ object MainForm: TMainForm
       Height = 17
       Caption = 'Sort'
       TabOrder = 5
+    end
+    object DXLabeledEdit: TLabeledEdit
+      Left = 760
+      Top = 20
+      Width = 41
+      Height = 23
+      EditLabel.Width = 63
+      EditLabel.Height = 15
+      EditLabel.Caption = 'DX (Integer)'
+      TabOrder = 6
+      Text = '1'
     end
   end
   object PageControl1: TPageControl
@@ -195,14 +206,23 @@ object MainForm: TMainForm
         Legend.Title.Visible = False
         Title.Text.Strings = (
           'TChart')
-        RightAxis.Increment = 4.000000000000000000
+        LeftAxis.Automatic = False
+        LeftAxis.AutomaticMaximum = False
+        LeftAxis.AutomaticMinimum = False
+        LeftAxis.Maximum = 6.000000000000000000
+        LeftAxis.Minimum = -4.000000000000000000
+        RightAxis.Automatic = False
+        RightAxis.AutomaticMaximum = False
+        RightAxis.AutomaticMinimum = False
+        RightAxis.Increment = 2.000000000000000000
+        RightAxis.Maximum = 36.000000000000000000
+        RightAxis.Minimum = -4.000000000000000000
         View3D = False
         Align = alClient
         TabOrder = 0
         DefaultCanvas = ''
         ColorPaletteIndex = 13
         object Series3: TLineSeries
-          HoverElement = [heCurrent]
           Selected.Hover.Visible = False
           SeriesColor = clFuchsia
           Title = 'StdDevValueAzh'
@@ -216,7 +236,6 @@ object MainForm: TMainForm
           YValues.Order = loNone
         end
         object Series6: TLineSeries
-          HoverElement = [heCurrent]
           Selected.Hover.Visible = False
           SeriesColor = 16744448
           Title = 'StdDevValueAzd'
@@ -230,7 +249,6 @@ object MainForm: TMainForm
           YValues.Order = loNone
         end
         object Series1: TLineSeries
-          HoverElement = [heCurrent]
           SeriesColor = clGreen
           Title = 'StdDevValueAxh'
           Brush.BackColor = clDefault
@@ -245,16 +263,16 @@ object MainForm: TMainForm
           YValues.Name = 'Y'
           YValues.Order = loNone
         end
-        object Series2: TLineSeries
-          HoverElement = [heCurrent]
+        object Series2: TPointSeries
+          Marks.Callout.Length = 8
           SeriesColor = clRed
           Title = 'Ax (m/s'#178')'
-          Brush.BackColor = clDefault
+          VertAxis = aRightAxis
           ClickableLine = False
           Pointer.HorizSize = 2
           Pointer.InflateMargins = True
           Pointer.Pen.Visible = False
-          Pointer.Style = psCircle
+          Pointer.Style = psRectangle
           Pointer.VertSize = 2
           XValues.Name = 'X'
           XValues.Order = loNone
@@ -262,19 +280,25 @@ object MainForm: TMainForm
           YValues.Order = loNone
         end
         object Series7: TLineSeries
-          HoverElement = [heCurrent]
-          SeriesColor = clBlack
+          Marks.FontSeriesColor = True
+          SeriesColor = clSilver
           Title = 'Pitch (rd)'
+          VertAxis = aRightAxis
           Brush.BackColor = clDefault
+          Pointer.Brush.Color = 16744448
+          Pointer.HorizSize = 2
           Pointer.InflateMargins = True
+          Pointer.Pen.Visible = False
           Pointer.Style = psRectangle
+          Pointer.VertSize = 2
+          Pointer.Visible = True
           XValues.Name = 'X'
           XValues.Order = loAscending
           YValues.Name = 'Y'
           YValues.Order = loNone
+          Transparency = 52
         end
         object Series8: TLineSeries
-          HoverElement = [heCurrent]
           SeriesColor = 4259584
           Brush.BackColor = clDefault
           Pointer.InflateMargins = True
@@ -369,7 +393,6 @@ object MainForm: TMainForm
         DefaultCanvas = ''
         ColorPaletteIndex = 13
         object Series4: TLineSeries
-          HoverElement = [heCurrent]
           Title = 'spectra KOSSIRA ICAS-82-2.8.2.pdf'
           Brush.BackColor = clDefault
           Pointer.InflateMargins = True
@@ -380,7 +403,6 @@ object MainForm: TMainForm
           YValues.Order = loNone
         end
         object Series5: TLineSeries
-          HoverElement = [heCurrent]
           SeriesColor = clRed
           Shadow.Visible = False
           Title = 'FileName'

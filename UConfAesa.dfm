@@ -279,7 +279,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Pullup (g)'
       TabOrder = 1
-      Text = '0.5'
+      Text = '0.25'
     end
     object PullUpDelayLabeledEdit: TLabeledEdit
       Left = 24

@@ -90,6 +90,7 @@ var
   Att: TAtt;
   Samples: array of TSample;
   DataBytes: TBytes; // données binaires chargées
+  Repere: Integer; // 1 for ENU   , -1 for NED
 
   ResultFile: TextFile;
 
@@ -157,7 +158,7 @@ begin
     // accélération (g)
     Acc.Ax := SmallInt((AccMsg.Ax_H shl 8) or AccMsg.Ax_L) / 2048;
     Acc.Ay := SmallInt((AccMsg.Ay_H shl 8) or AccMsg.Ay_L) / 2048;
-    Acc.Az := SmallInt((AccMsg.Az_H shl 8) or AccMsg.Az_L) / 2048;
+    Acc.Az := -SmallInt((AccMsg.Az_H shl 8) or AccMsg.Az_L) / 2048 * Repere;
     Acc.Temperature := SmallInt((AccMsg.Temp_H shl 8) or AccMsg.Temp_L) / 100.0;
     if (Acc.Az >= LowG) and (Acc.Az <= HighG) then Acc.Success:=True;//Checksum is ok and accelerations are inside the valid range
     // Write(ResultFile, Acc.Ax:10:3, ',', Acc.Ay:10:3, ',', Acc.Az:10:3, ',', Acc.Temperature:5:1, ',');

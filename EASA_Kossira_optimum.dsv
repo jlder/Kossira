@@ -10,19 +10,19 @@ EditViewName=D:\Data\Jean_Luc_Derouineau\AESA\USort.pas
 
 [ClosedView_RDpcRGF0YVxKZWFuX0x1Y19EZXJvdWluZWF1XEFFU0FcVU1haW5BRVNBX09wdC5wYXM=]
 Module=D:\Data\Jean_Luc_Derouineau\AESA\UMainAESA_Opt.pas
-CursorX=1
-CursorY=618
-TopLine=598
+CursorX=20
+CursorY=772
+TopLine=745
 LeftCol=1
-Elisions=
+Elisions={{359,62},{365,3},{''}}{{367,76},{385,3},{''}}{{387,57},{431,3},{''}}{{433,51},{436,3},{''}}{{438,53},{441,3},{''}}{{443,48},{446,3},{''}}{{448,120},{459,3},{''}}{{461,120},{472,3},{''}}{{474,48},{478,3},{''}}{{480,47},{489,3},{''}}{{491,47},{500,3},{''}}{{502,49},{512,3},{''}}{{514,48},{517,3},{''}}{{519,55},{522,3},{''}}{{524,47},{527,3},{''}}{{529,46},{532,3},{''}}{{534,59},{537,3},{''}}{{539,197},{670,3},{''}}{{672,81},{721,3},{''}}{{786,33},{843,6},{''}}
 Bookmarks=
 EditViewName=D:\Data\Jean_Luc_Derouineau\AESA\UMainAESA_Opt.pas
 
 [ClosedView_RDpcRGF0YVxKZWFuX0x1Y19EZXJvdWluZWF1XEFFU0FcVURlY29kZVdJVF9vcHQucGFz]
 Module=D:\Data\Jean_Luc_Derouineau\AESA\UDecodeWIT_opt.pas
 CursorX=1
-CursorY=226
-TopLine=214
+CursorY=94
+TopLine=63
 LeftCol=1
 Elisions=
 Bookmarks=
