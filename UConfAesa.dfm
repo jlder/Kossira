@@ -129,7 +129,7 @@ object ConfForm: TConfForm
       ParentShowHint = False
       ShowHint = True
       TabOrder = 1
-      Text = '6'
+      Text = '15'
     end
     object OutlierLabeledEdit: TLabeledEdit
       Left = 200
@@ -230,7 +230,7 @@ object ConfForm: TConfForm
       Text = '6.0'
     end
     object ButterWorthRadioGroup: TRadioGroup
-      Left = 416
+      Left = 408
       Top = 6
       Width = 105
       Height = 116
@@ -268,7 +268,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Deceleration (g)'
       TabOrder = 0
-      Text = '0.15'
+      Text = '0.075'
     end
     object PullUpLabeledEdit: TLabeledEdit
       Left = 24
@@ -279,7 +279,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Pullup (g)'
       TabOrder = 1
-      Text = '0.25'
+      Text = '0.015'
     end
     object PullUpDelayLabeledEdit: TLabeledEdit
       Left = 24
@@ -312,7 +312,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Touch (g)'
       TabOrder = 4
-      Text = '0.5'
+      Text = '0.1'
     end
     object IntegratorThresholdLabeledEdit: TLabeledEdit
       Left = 128
@@ -389,7 +389,18 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Touchtimeout (s)T'
       TabOrder = 11
-      Text = '20'
+      Text = '60'
+    end
+    object StopLabeledEdit: TLabeledEdit
+      Left = 578
+      Top = 42
+      Width = 40
+      Height = 23
+      EditLabel.Width = 69
+      EditLabel.Height = 15
+      EditLabel.Caption = 'StopLevel (g)'
+      TabOrder = 12
+      Text = '0.01'
     end
   end
   object RepereRadioGroup: TRadioGroup

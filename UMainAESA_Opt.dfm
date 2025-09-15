@@ -2,7 +2,7 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'Determination of load spectra'
-  ClientHeight = 778
+  ClientHeight = 793
   ClientWidth = 1367
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -126,14 +126,22 @@ object MainForm: TMainForm
       EditLabel.Height = 15
       EditLabel.Caption = 'DX (Integer)'
       TabOrder = 6
-      Text = '1'
+      Text = '0'
+    end
+    object Taxi_IncludedCheckBox: TCheckBox
+      Left = 599
+      Top = 3
+      Width = 98
+      Height = 17
+      Caption = 'Taxi included'
+      TabOrder = 7
     end
   end
   object PageControl1: TPageControl
     Left = 0
     Top = 49
     Width = 1367
-    Height = 729
+    Height = 744
     ActivePage = GraphTabSheet
     Align = alClient
     TabOrder = 1
@@ -143,7 +151,7 @@ object MainForm: TMainForm
         Left = 274
         Top = 0
         Width = 144
-        Height = 699
+        Height = 714
         Align = alLeft
         Lines.Strings = (
           'Resampled Data'
@@ -155,7 +163,7 @@ object MainForm: TMainForm
         Left = 137
         Top = 0
         Width = 137
-        Height = 699
+        Height = 714
         Align = alLeft
         Lines.Strings = (
           'Sampled Data'
@@ -167,7 +175,7 @@ object MainForm: TMainForm
         Left = 0
         Top = 0
         Width = 137
-        Height = 699
+        Height = 714
         Align = alLeft
         Lines.Strings = (
           'Raw Data'
@@ -179,7 +187,7 @@ object MainForm: TMainForm
         Left = 418
         Top = 0
         Width = 167
-        Height = 699
+        Height = 714
         Align = alLeft
         Lines.Strings = (
           'Kossira')
@@ -193,7 +201,7 @@ object MainForm: TMainForm
         Left = 0
         Top = 0
         Width = 1359
-        Height = 699
+        Height = 714
         Legend.Alignment = laBottom
         Legend.FontSeriesColor = True
         Legend.LegendStyle = lsSeries
@@ -209,14 +217,12 @@ object MainForm: TMainForm
         LeftAxis.Automatic = False
         LeftAxis.AutomaticMaximum = False
         LeftAxis.AutomaticMinimum = False
-        LeftAxis.Maximum = 6.000000000000000000
-        LeftAxis.Minimum = -4.000000000000000000
+        LeftAxis.Maximum = 1.000000000000000000
         RightAxis.Automatic = False
         RightAxis.AutomaticMaximum = False
         RightAxis.AutomaticMinimum = False
         RightAxis.Increment = 2.000000000000000000
-        RightAxis.Maximum = 36.000000000000000000
-        RightAxis.Minimum = -4.000000000000000000
+        RightAxis.Maximum = 0.100000000000000000
         View3D = False
         Align = alClient
         TabOrder = 0
@@ -258,6 +264,7 @@ object MainForm: TMainForm
           Pointer.Pen.Visible = False
           Pointer.Style = psRectangle
           Pointer.VertSize = 1
+          Stairs = True
           XValues.Name = 'X'
           XValues.Order = loNone
           YValues.Name = 'Y'
@@ -267,7 +274,6 @@ object MainForm: TMainForm
           Marks.Callout.Length = 8
           SeriesColor = clRed
           Title = 'Ax (m/s'#178')'
-          VertAxis = aRightAxis
           ClickableLine = False
           Pointer.HorizSize = 2
           Pointer.InflateMargins = True
@@ -283,7 +289,6 @@ object MainForm: TMainForm
           Marks.FontSeriesColor = True
           SeriesColor = clSilver
           Title = 'Pitch (rd)'
-          VertAxis = aRightAxis
           Brush.BackColor = clDefault
           Pointer.Brush.Color = 16744448
           Pointer.HorizSize = 2
@@ -317,7 +322,7 @@ object MainForm: TMainForm
         Left = 0
         Top = 0
         Width = 1233
-        Height = 699
+        Height = 714
         Align = alLeft
         ColCount = 33
         DefaultColWidth = 36
@@ -328,6 +333,7 @@ object MainForm: TMainForm
         Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goFixedRowDefAlign]
         TabOrder = 0
         OnDrawCell = MarcovStringGrid1DrawCell
+        ExplicitHeight = 709
       end
     end
     object Marcov2TabSheet: TTabSheet
@@ -337,7 +343,7 @@ object MainForm: TMainForm
         Left = 0
         Top = 0
         Width = 1233
-        Height = 699
+        Height = 714
         Align = alLeft
         ColCount = 33
         Ctl3D = False
@@ -350,12 +356,13 @@ object MainForm: TMainForm
         ParentCtl3D = False
         TabOrder = 0
         OnDrawCell = MarcovStringGrid2DrawCell
+        ExplicitHeight = 709
       end
       object spectrumStringGrid: TStringGrid
         Left = 1238
         Top = 0
         Width = 121
-        Height = 699
+        Height = 714
         Align = alRight
         ColCount = 2
         DefaultColWidth = 63
@@ -364,6 +371,7 @@ object MainForm: TMainForm
         FixedColor = clMoneyGreen
         RowCount = 33
         TabOrder = 1
+        ExplicitHeight = 709
       end
     end
     object SpectraTabSheet: TTabSheet
@@ -373,7 +381,7 @@ object MainForm: TMainForm
         Left = 0
         Top = 0
         Width = 1359
-        Height = 699
+        Height = 714
         Legend.Alignment = laBottom
         Legend.LegendStyle = lsSeries
         Title.Text.Strings = (
@@ -390,6 +398,7 @@ object MainForm: TMainForm
         View3D = False
         Align = alClient
         TabOrder = 0
+        ExplicitHeight = 709
         DefaultCanvas = ''
         ColorPaletteIndex = 13
         object Series4: TLineSeries

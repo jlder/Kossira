@@ -21,7 +21,7 @@ implementation
 
 function HighPass_Filter2(var Buf: THighPassFilter2; x: Extended): Extended;
 const
-  // Coefficients for order=2 :
+  // Coefficients for order=2 : Passe haut au-delà de 2 Hz à 20 Hz
   b0 = 0.638945525159023; // Numerator
   b1 = -1.277891050318047;
   b2 = 0.638945525159023;
@@ -44,7 +44,7 @@ begin
 end;
 function HighPass_Filter4(var Buf: THighPassFilter4; x: Extended): Extended;
 Const
-  // Coefficients for order=4 :  Coupure 2 Hz à 20 Hz
+  // Coefficients for order=4 :  Passe haut au-delà de 2 Hz à 20 Hz
 
   b0 = 0.43285;
   b1 = -1.73139;
@@ -79,7 +79,7 @@ end;
 
 function THighPass_Filter4(var Buf: THighPassFilter4; x: Extended): Extended;
 Const
-  // Coefficients for order=4 :  Coupure 5 Hz à 20 Hz
+  // Coefficients for order=4 :  Passe haut au-delà de 5 Hz à 20 Hz
 
   b0 = 0.169994;
   b1 = -0.679978;

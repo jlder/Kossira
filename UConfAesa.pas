@@ -48,6 +48,7 @@ type
     MinFlightDurationLabeledEdit: TLabeledEdit;
     IntegTouchDelayLabeledEdit: TLabeledEdit;
     TouchTimeOutLabeledEdit: TLabeledEdit;
+    StopLabeledEdit: TLabeledEdit;
     procedure ValidationButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
   private

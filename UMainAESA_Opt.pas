@@ -34,9 +34,6 @@ type
   TFlights = array of TFlightInfo;
 
 type
-  TFusion_Coef = array [0 .. 3] of Integer;
-
-type
   TMainForm = class(TForm)
     Panel1: TPanel;
     FileNameLabeledEdit: TLabeledEdit;
@@ -94,6 +91,7 @@ type
     Series8: TLineSeries;
     Series2: TPointSeries;
     DXLabeledEdit: TLabeledEdit;
+    Taxi_IncludedCheckBox: TCheckBox;
     Procedure Initialisation(Sender: TObject);
     procedure RunButtonClick(Sender: TObject);
     procedure ConfButtonClick(Sender: TObject);
@@ -144,10 +142,11 @@ var
   StdDevValueAxd, StdDevValueAxh, StdDevValueAzd, StdDevValueAzh: Extended;
   PullUp, PullUpDelay, PullUpTimeOut: Extended;
   IntegratorThreshold, IntegDelay: Extended;
-  Deceleration, DecelerationDelay, Touching, IntegTouchDelay, TouchTimeOut, MinFlightDuration, NewFlightDelay: Extended;
+  Deceleration, DecelerationDelay, Touching, StopLevel, IntegTouchDelay, TouchTimeOut, MinFlightDuration, NewFlightDelay: Extended;
   phase: (Idle, Taxi, TaxiConfirm, Air, Taxi2, Landing);
   Velocity: Extended;
   Offset: Extended; // Offset for avoiding velocity error
+  EoFTime: Int64;
 
   Count, n_1, nq_1, slope_1, minmax, minmax_1: Integer;
   Markov1, Markov2: Array [0 .. Taille_Spectrum, 0 .. Taille_Spectrum] of Integer;
@@ -161,9 +160,7 @@ var
   Compteur_FFT: Integer;
   R: Extended;
   Signal: array [0 .. WindowSize - 1] of TComplex;
-  Fusion_Result_1: Extended;
-  Fusion_Coef: TFusion_Coef;
-  DX:Integer;
+  DX: Integer;
 
 var // Butterworth variables
   HPBuf2: THighPassFilter2;
@@ -171,8 +168,7 @@ var // Butterworth variables
   THPBuf4x: THighPassFilter4;
   THPBuf4z: THighPassFilter4;
   nfh: Extended;
-  IAxh, Iazh: Extended;
-  Temps0, Temps, Maxnfh: Extended;
+  Temps0, Temps, Maxn: Extended;
 
 var // Time profiler variables
   StartCount, EndCount, Frequency: Int64;
@@ -205,7 +201,7 @@ begin
   n_1 := 0;
   nq_1 := 0;
   slope_1 := 1;
-  minmax := 1;
+  minmax := 16;
   minmax_1 := 16;
   // Configuration Recall
   ConfForm.ValidationButtonClick(Sender);
@@ -264,12 +260,8 @@ begin
     Spectrum[i] := 0;
   Chart1.Axes.Left.Automatic := False;
   // Chart1.Axes.Left.Automatic := True;
-  Chart1.Axes.Left.Maximum := HighG;
-  Chart1.Axes.Left.Minimum := LowG;
-  Fusion_Coef[0] := 1;
-  Fusion_Coef[1] := 0;
-  Fusion_Coef[2] := 0;
-  Fusion_Coef[3] := 1;
+  // Chart1.Axes.Left.Maximum := HighG;
+  // Chart1.Axes.Left.Minimum := LowG;
   DX := StrToInt(DXLabeledEdit.Text);
   NAccel := StrToInt(ConfForm.NAccelLabeledEdit.Text);
   NAccelx := StrToInt(ConfForm.NAccelxLabeledEdit.Text);
@@ -320,7 +312,6 @@ begin
   THPBuf4z.y2 := 0;
   THPBuf4z.y3 := 0;
   THPBuf4z.y4 := 0;
-  Fusion_Result_1 := 0.0;
 
   GyroPresent := ConfForm.DataCheckListBox.Checked[2];
   AttPresent := ConfForm.DataCheckListBox.Checked[3];
@@ -347,6 +338,7 @@ begin
   Touching := StrToFloat(ConfForm.TouchLabeledEdit.Text);
   IntegTouchDelay := StrToFloat(ConfForm.IntegTouchDelayLabeledEdit.Text);
   TouchTimeOut := StrToFloat(ConfForm.TouchTimeOutLabeledEdit.Text);
+  StopLevel := StrToFloat(ConfForm.StopLabeledEdit.Text);
   NewFlightDelay := StrToFloat(ConfForm.NewFlightDelayLabeledEdit.Text);
   QueryPerformanceCounter(EndCount);
   ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
@@ -539,50 +531,51 @@ begin
   ConfButtonClick(Sender)
 end;
 
-procedure DetectFlights(Index: Integer; Time64: Int64; Ax, IAxh, Iazh, StdDevValueAzh: Extended; var Fusion_Result, Fusion_Result_1: Extended; var Flights: TFlights; var Fusion_Coef: TFusion_Coef);
+procedure DetectFlights(Index: Integer; Time64: Int64; StdDevValueAzd, StdDevValueAzh: Extended; var Flights: TFlights);
 var
   currFlight: TFlightInfo;
-  Function DetectTaxiStart(Time64: Int64; Fusion: Extended): Boolean;
+  Function DetectTaxiStart(StdDevValueAzh: Extended): Boolean;
   begin
-    if (Fusion > PullUp) then
+    if (StdDevValueAzh > PullUp) then
       DetectTaxiStart := True
     else
       DetectTaxiStart := False;
   end;
-  Function DetectTakeOff(Time64: Int64; Fusion, Deceleration, PullUpDelay: Extended): Boolean;
+  Function DetectTaxiConfirmStart(StdDevValueAzd, StdDevValueAzh: Extended): Boolean;
   begin
-    if (Fusion < Deceleration) and ((Time64 - currFlight.TakeOff) / 1000.0 > DecelerationDelay) then
+    if (StdDevValueAzd > Deceleration) and (StdDevValueAzh < Deceleration) then
+      DetectTaxiConfirmStart := True
+    else
+      DetectTaxiConfirmStart := False;
+  end;
+  Function DetectTakeOff(Time64: Int64; StdDevValueAzd, Deceleration, DecelerationDelay: Extended): Boolean;
+  begin
+    if (StdDevValueAzd > PullUp) and ((Time64 - currFlight.TakeOff) / 1000.0 > DecelerationDelay) then
       DetectTakeOff := True
     else
       DetectTakeOff := False;
   end;
-  Function DetectTouchDown(Time64: Int64; Fusion: Extended): Boolean;
+  Function DetectTouchDown(Time64: Int64; StdDevValueAzh: Extended): Boolean;
   begin
-    if (Fusion > Touching) and ((Time64 - currFlight.TakeOff) / 1000.0 > IntegTouchDelay) then
+    if (StdDevValueAzh > Touching) then
       DetectTouchDown := True
     else
       DetectTouchDown := False;
   end;
-  Function DetectTaxiStop(Time64: Int64; Fusion, DecelerationDelay: Extended): Boolean;
+  Function DetectTaxiStop(Time64: Int64; StdDevValueAzd, StdDevValueAzh, DecelerationDelay: Extended): Boolean;
   begin
-    if (Fusion < Deceleration) or ((Time64 - currFlight.TouchDown) / 1000.0 > TouchTimeOut) then
+    if ((StdDevValueAzd < StopLevel) and (StdDevValueAzh < StopLevel)) or ((Time64 - currFlight.TouchDown) / 1000.0 > TouchTimeOut) then
       DetectTaxiStop := True
     else
       DetectTaxiStop := False;
   end;
 
 begin
-  Var
-    Fusion: Extended;
   currFlight := Flights[flightIdx];
-  // Fusion := (Fusion_Coef[0] * Ax + Fusion_Coef[1] * IAxh + Fusion_Coef[2] * Iazh + Fusion_Coef[3] * StdDevValueAzh) { / (Fusion_Coef[0] + Fusion_Coef[1] + Fusion_Coef[2] + Fusion_Coef[3]) };
-  Fusion := StdDevValueAzh { / (Fusion_Coef[0] + Fusion_Coef[1] + Fusion_Coef[2] + Fusion_Coef[3]) };
-  Fusion_Result_1 := Fusion;
   case phase of
     Idle:
       begin
-        Fusion_Result := 0.0;
-        if DetectTaxiStart(Time64, Fusion) then
+        if DetectTaxiStart(StdDevValueAzh) then
         begin
           // Début roulage détecté
           if (currFlight.TaxiStart = 0) then
@@ -591,67 +584,63 @@ begin
             currFlight.idxTaxiStart := Index;
             Flights[flightIdx] := currFlight;
             phase := Taxi;
-            Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi confirmed?');
+            // Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi');
           end;
         end;
 
       end;
     Taxi:
       begin
-        Fusion_Result := IAxh + Iazh;
-        if ((Time64 - currFlight.TaxiStart) / 1000.0 >= IntegDelay) then
-          // if (Fusion_Result < IntegratorThreshold) or ((Time64 - currFlight.TaxiStart) / 1000.0 >= PullUpTimeOut) then
-          if (Fusion < Deceleration) or ((Time64 - currFlight.TaxiStart) / 1000.0 >= PullUpTimeOut) then
-          begin
-            phase := Idle;
-            currFlight.TaxiStart := 0;
-            Flights[flightIdx] := currFlight;
-          end
-          else
-          begin
-            phase := TaxiConfirm;
-            Writeln(ResultFile, (Time64 / 1000.0) - PullUpDelay:8:3, ',', 'Taxi');
-          end;
+        if DetectTaxiConfirmStart(StdDevValueAzd, StdDevValueAzh) then
+        begin
+          phase := TaxiConfirm;
+          // Writeln(ResultFile, (Time64 / 1000.0) - PullUpDelay:8:3, ',', 'Taxi confirmed');
+        end
+        else if (Time64 - currFlight.TaxiStart) / 1000.0 >= PullUpDelay then
+        begin
+          phase := Idle;
+          currFlight.TaxiStart := 0;
+          currFlight.idxTaxiStart := 0;
+          Flights[flightIdx] := currFlight;
+        end;
       end;
     TaxiConfirm:
-      if DetectTakeOff(Time64, Fusion, Deceleration, PullUpDelay) then
+      if DetectTakeOff(Time64, StdDevValueAzd, Deceleration, DecelerationDelay) then
       begin
-        Fusion_Result := 0.0;
         currFlight.TakeOff := Time64;
         currFlight.idxTakeOff := Index;
         Flights[flightIdx] := currFlight;
         phase := Air;
-        Writeln(ResultFile, Time64 / 1000.0:8:3, 'Air');
-        Fusion_Coef[0] := StrToInt(ConfForm.w1LabeledEdit.Text);
-        Fusion_Coef[1] := StrToInt(ConfForm.w2LabeledEdit.Text);
-        Fusion_Coef[2] := StrToInt(ConfForm.w3LabeledEdit.Text);
-        Fusion_Coef[3] := StrToInt(ConfForm.w4LabeledEdit.Text);
+        // Writeln(ResultFile, Time64 / 1000.0:8:3, 'Air');
       end;
 
     Air:
-      if DetectTouchDown(Time64, Fusion) and ((Time64 - currFlight.TakeOff) / 1000.0 > MinFlightDuration) then
+      if DetectTouchDown(Time64, StdDevValueAzh) and ((Time64 - currFlight.TakeOff) / 1000.0 > MinFlightDuration) then
       begin
         currFlight.TouchDown := Time64;
         currFlight.idxTouchDown := Index;
         Flights[flightIdx] := currFlight;
         phase := Taxi2;
-        Writeln(ResultFile, Time64 / 1000.0:8:3, ',', 'Taxi2');
+        // Writeln(ResultFile, Time64 / 1000.0:8:3, ',', 'Taxi2');
       end;
 
     Taxi2:
-      if DetectTaxiStop(Time64, Fusion, DecelerationDelay) then
+      if DetectTaxiStop(Time64, StdDevValueAzd, StdDevValueAzh, DecelerationDelay) then
       begin
         currFlight.TaxiStop := Time64;
-        currFlight.FlightTime := currFlight.TouchDown - currFlight.TakeOff;
+        if MainForm.Taxi_IncludedCheckBox.Checked then
+          currFlight.FlightTime := currFlight.TaxiStop - currFlight.TaxiStart
+        else
+          currFlight.FlightTime := currFlight.TouchDown - currFlight.TakeOff;
         currFlight.idxTaxiStop := Index;
+        phase := Landing;
         // Ajouter le vol détecté
         Flights[flightIdx] := currFlight;
-        phase := Landing;
-        Writeln(ResultFile, Time64 / 1000.0:8:3, ',', 'Landing');
+        // Writeln(ResultFile, Time64 / 1000.0:8:3, ',', 'Landing');
       end;
     Landing:
       // Attente d'un nouveau départ
-      if (Time64 - currFlight.TaxiStop) / 1000.0 > NewFlightDelay then
+      if ((Time64 - currFlight.TaxiStop) / 1000.0 > NewFlightDelay) or (Time64 >= EoFTime) then
       begin
         phase := Idle;
         flightIdx := flightIdx + 1;
@@ -666,8 +655,6 @@ begin
         currFlight.idxTouchDown := 0;
         currFlight.idxTaxiStop := 0;
         Flights[flightIdx] := currFlight;
-        Fusion_Coef[0] := 1;
-        Fusion_Coef[3] := 1;
       end;
   end;
 end;
@@ -734,6 +721,8 @@ Var
   Buffer: TBuffer; // 10 octets pour chaque message
   Checksum: Byte;
   NewSample: Extended;
+Var
+  Pitch, Ax, Ay, An, axh, ax_abs, Ax0: Extended;
 
   Procedure Transitions_Computation(Temps, nff: Extended);
   begin
@@ -757,10 +746,10 @@ Var
       begin
         // look for min max by checking slope sign change
         if GraphCheckBox.Checked then
-          begin
+        begin
           Series2.Title := 'nq';
           Series2.Addxy(Temps, nq);
-          end;
+        end;
         if ((nq - nq_1) > 0) then
           slope := 1
         else
@@ -775,10 +764,10 @@ Var
           // Display n and nq for min/max
           // Series1.AddXY(Temps, n * UnderSample div ClassNumbers);
           if GraphCheckBox.Checked then
-            begin
+          begin
             Series7.Title := 'minmax';
             Series7.Addxy(Temps, minmax);
-            end;
+          end;
           // keep track of last minmax
           minmax_1 := minmax;
         end;
@@ -852,8 +841,8 @@ Var
 
 begin
   Initialisation(Sender);
-  Maxnfh := 0.0;
-  QueryPerformanceCounter(StartCount);
+  Maxn := 0.0;
+  // QueryPerformanceCounter(StartCount);
   // Data processing
   // Loading RAM memory with all data from File in Sentences record
   ParseData(DataBytes, GyroPresent, AttPresent);
@@ -868,35 +857,36 @@ begin
       If Temps0 = 0.0 then
         Temps0 := Temps;
       deltaT := (Samples[i].Time.Temps - Samples[i].Time.Temps_1);
+      Ax := Samples[i].Acc.Ax;
+      If (Temps - Temps0 < 10) then
+        Ax0 := 0.9 * Ax0 + 0.1 * Ax;
+      Ay := Samples[i].Acc.Ay;
       nff := Samples[i].Acc.az; // Taking account of the frame NED or not
-      nfh := Abs(HighPass_Filter4(HPBuf4, nff)); // Butterworth order 4
-      AddSample(BufAzh, nfh); // add the absolute value of the butterworth output
-      StdDevValueAzh := ComputeStdDev(Temps, BufAzh);
-      if StdDevValueAzh > Maxnfh then
-        Maxnfh := StdDevValueAzh;
-      Series6.Title := 'Maxnfh';
-      Series6.Addxy(Temps, Maxnfh); // black curve
+      An := Sqrt(Ax * Ax + Ay * Ay + nff * nff) - 1.0;
+      if An > Maxn then
+        Maxn := An;
+      // Series6.Title := 'Maxn';
+      // Series6.Addxy(Temps, Maxn); // black curve
     end
     else
     begin
       Application.MessageBox('Invalid message', 'Attention', IDOK);
       Halt(0);
     end;
+    EoFTime := Samples[i].Time.TimeMs;
   end;
 
   ProgressBar1.Position := 10;
-  QueryPerformanceCounter(EndCount);
-  ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
-  Writeln(ResultFile, Format('Durée du calcul des maxs: %.6f secondes', [ElapsedTime]));
+  // QueryPerformanceCounter(EndCount);
+  // ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
+  // Writeln(ResultFile, Format('Durée du calcul des maxs: %.6f secondes', [ElapsedTime]));
   Application.ProcessMessages;
 
   // First step : Flight status determination
   // Looking for flight status
-  QueryPerformanceCounter(StartCount);
+  // QueryPerformanceCounter(StartCount);
   RunningLabel.Caption := 'Flight Status';
   Initialisation(Sender);
-  Var
-    Pitch, Ax, Ay, axh, ax_abs, Fusion_Result, Ax0: Extended;
   Ax0 := 0.0;
   for i := 0 to High(Samples) do // Scanning throw all the data
   begin
@@ -908,24 +898,23 @@ begin
       deltaT := (Samples[i].Time.Temps - Samples[i].Time.Temps_1);
       // Writeln(ResultFile,Temps:8:3,',',deltaT:8:3);
       // deltaT:=0.05;
-      nff := Samples[i].Acc.az; // Taking account of the frame NED or not
-      Ax := Samples[i].Acc.Ax * Gravity;
+      Ax := Samples[i].Acc.Ax / Maxn;
       If (Temps - Temps0 < 10) then
         Ax0 := 0.9 * Ax0 + 0.1 * Ax;
-      Ay := Samples[i].Acc.Ay * Gravity;
-      Pitch := Samples[i].Att.Pitch;
-      ax_abs := Ax * cos(Pitch) + (nff - 1) * Gravity * sin(Pitch);
-      ax_AB.ABupdate(deltaT, ax_abs);
+      Ay := Samples[i].Acc.Ay / Maxn;
+      nff := Samples[i].Acc.az / Maxn; // Taking account of the frame NED or not
+      An := Sqrt(Ax * Ax + Ay * Ay + nff * nff) - 1.0;
+      // Pitch := Samples[i].Att.Pitch;
+      // ax_abs := Ax * cos(Pitch) + (nff - 1) * Gravity * sin(Pitch);
+      // ax_AB.ABupdate(deltaT, ax_abs);
       if IsNan(deltaT) or IsInfinite(deltaT) or (deltaT <= 0) then
         deltaT := 0.05;
-      if Temps < 110.0 then
-        Velocity := 0.0;
       // Offset := Ki * Velocity + Kp * ax_AB.ABfilt;
-      Velocity := Velocity + (ax_AB.ABfilt { - Offset } ) * deltaT;
-      az_AB.ABupdate(deltaT, nff); // use alphabeta filter to get the variation
-      AddSample(BufAzd, az_AB.ABprim); // and add this variation in the circular buffer for standard deviation computing
-      AddSample(BufAxd, ax_AB.ABfilt);
-      StdDevValueAxd := ComputeStdDev(Temps, BufAxd);
+      // Velocity := Velocity + (ax_AB.ABfilt  - Offset  ) * deltaT;
+      az_AB.ABupdate(deltaT, An); // use alphabeta filter to get the variation
+      AddSample(BufAzd, az_AB.ABfilt); // and add this variation in the circular buffer for standard deviation computing
+      // AddSample(BufAxd, ax_AB.ABfilt);
+      // StdDevValueAxd := ComputeStdDev(Temps, BufAxd);
       StdDevValueAzd := ComputeStdDev(Temps, BufAzd);
       if FFTCheckBox.Checked then
       begin
@@ -938,16 +927,16 @@ begin
         // Butterworth high pass
         case ConfForm.ButterWorthRadioGroup.ItemIndex of // acceleration high pass filtering in accordance with the butterworth order 2 or 4
           0:
-            nfh := nff; // No flitrage
+            nfh := An; // No flitrage
           1:
-            nfh := Abs(HighPass_Filter2(HPBuf2, nff)); // Butterworth order 2
+            nfh := Abs(HighPass_Filter2(HPBuf2, An)); // Butterworth order 2
           2:
-            nfh := Abs(HighPass_Filter4(HPBuf4, nff)); // Butterworth order 4
+            nfh := Abs(HighPass_Filter4(HPBuf4, An)); // Butterworth order 4
           3:
             nfh := Abs(HighPass_Filter4(THPBuf4z, az_AB.ABprim)); // Butterworth order 4
         end;
         AddSample(BufAzh, nfh); // add the absolute value of the butterworth output
-        StdDevValueAzh := ComputeStdDev(Temps, BufAzh) / Maxnfh;
+        StdDevValueAzh := ComputeStdDev(Temps, BufAzh);
 
         axh := Abs(THighPass_Filter4(THPBuf4x, Ax)); // Butterworth order 4
         AddSample(BufAxh, axh); // add the absolute value of the butterworth output
@@ -955,25 +944,24 @@ begin
         // ax_AB.ABupdate(deltaT, nfh);
 
         // inFlight_Determination
-        DetectFlights(i, Samples[i].Time.TimeMs, Ax - Ax0, IAxh, Iazh, StdDevValueAzh, Fusion_Result, Fusion_Result_1, Flights, Fusion_Coef);
+        DetectFlights(i, Samples[i].Time.TimeMs, StdDevValueAzd, StdDevValueAzh, Flights);
         if GraphCheckBox.Checked and Not MainForm.FFTCheckBox.Checked then
         begin
           Series1.Title := 'inFlight';
           // Series2.Title := 'StdDevValueAxd';
-          // Series7.Title := 'Ay';
           // Series3.Title := 'StdDevValueAzh';
-          Series3.Title := 'AZ';
-          // Series6.Title := 'StdDevValueAzd';
+          Series3.Title := 'An';
+          Series6.Title := 'StdDevValueAn';
           // Series6.Title := 'IAzh';
           // Series7.Title := 'StdDevValueAzh';
-          Series8.Title := 'StdDevValueAzh';
+          Series2.Title := 'StdDevValueAnh';
           // Series1.Addxy(Temps, StdDevValueAxh);
           // Series2.Addxy(Temps, StdDevValueAxd);
-          Series3.Addxy(Temps, nff, '', clpurple); // purple curve
-          // Series6.Addxy(Temps, StdDevValueAzd); // black curve
+          Series3.Addxy(Temps, An, '', clpurple); // purple curve
+          Series6.Addxy(Temps, StdDevValueAzd); // black curve
           // Series7.Addxy(Temps, StdDevValueAxh); // black curve
-          // Series7.Addxy(Temps, StdDevValueAzh); // black curve
-          Series8.Addxy(Temps, StdDevValueAzh); // red curve
+          // Series7.Addxy(Temps, StdDevValueAzh+StdDevValueAzd,'',clBlack); // black curve
+          Series2.Addxy(Temps, StdDevValueAzh); // red curve
           // Series3.Addxy(Temps, (nff)); // purple curve
           // Series6.Addxy(Temps, Iazh); // blue curve
           // Series3.Addxy(Temps, StdDevValueAzh,'',clPurple; // purple curve
@@ -981,38 +969,26 @@ begin
             Idle:
               begin
                 Series1.Addxy(Temps, 0);
-                IAxh := 0.0;
-                Iazh := 0.0;
-              end;
-            TaxiConfirm:
-              begin
-                Series1.Addxy(Temps, 1);
-                IAxh := IAxh + StdDevValueAxh * 0.5;
-                Iazh := Iazh + StdDevValueAzh * 0.5;
               end;
             Taxi:
               begin
-                Series1.Addxy(Temps, 2);
-                IAxh := IAxh + StdDevValueAxh * 0.5;
-                Iazh := Iazh + StdDevValueAzh * 0.5;
+                Series1.Addxy(Temps, 0.1);
+              end;
+            TaxiConfirm:
+              begin
+                Series1.Addxy(Temps, 0.2);
               end;
             Air:
               begin
-                Series1.Addxy(Temps, 3);
-                IAxh := 0.0;
-                Iazh := 0.0;
+                Series1.Addxy(Temps, 0.3);
               end;
             Taxi2:
               begin
-                Series1.Addxy(Temps, 4);
-                IAxh := IAxh + axh * 0.05;
-                Iazh := 0.0;
+                Series1.Addxy(Temps, 0.4);
               end;
             Landing:
               begin
-                Series1.Addxy(Temps, 5);
-                IAxh := 0.0;
-                Iazh := 0.0;
+                Series1.Addxy(Temps, 0.5);
               end;
           end;
         end;
@@ -1028,13 +1004,16 @@ begin
   FlightTime := 0.0;
   For i := 0 to High(Flights) do // Scanning of the flights inside the record
     FlightTime := FlightTime + Flights[i].FlightTime / 3600000.0; // addinf partial flight time and convert in hour
+  if FlightTime = 0 then
+    Application.MessageBox('FlightTime is null', 'Attention', IDOK);
+
   ProgressBar1.Position := 40;
-  QueryPerformanceCounter(EndCount);
-  ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
-  Writeln(ResultFile, Format('Durée du calcul de la durée des vols: %.6f secondes', [ElapsedTime]));
+  // QueryPerformanceCounter(EndCount);
+  // ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
+  // Writeln(ResultFile, Format('Durée du calcul de la durée des vols: %.6f secondes', [ElapsedTime]));
 
   // Second step : Average for flight status = inFlight
-  QueryPerformanceCounter(StartCount);
+  // QueryPerformanceCounter(StartCount);
   RunningLabel.Caption := 'Averaging';
   Application.ProcessMessages;
   for j := 0 to High(Flights) do // Scanning of the flights inside the record
@@ -1059,29 +1038,40 @@ begin
   LigneAGrossir := nq_avg;
   // Mean computation completed
   ProgressBar1.Position := 60;
-  QueryPerformanceCounter(EndCount);
-  ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
-  Writeln(ResultFile, Format('Durée du averaging: %.6f secondes', [ElapsedTime]));
+  // QueryPerformanceCounter(EndCount);
+  // ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
+  // Writeln(ResultFile, Format('Durée du averaging: %.6f secondes', [ElapsedTime]));
 
   // Third step : Acceleration transitions counting
-  QueryPerformanceCounter(StartCount);
+  // QueryPerformanceCounter(StartCount);
   RunningLabel.Caption := 'Occuring';
   Application.ProcessMessages;
   if High(Flights) >= 0 then
   begin
     for j := 0 to High(Flights) do // Scanning of the flights inside the record
-      for i := Flights[j].idxTakeOff to Flights[j].idxTouchDown do // flights only are processed
+      if Taxi_IncludedCheckBox.Checked then
       begin
-        Temps := Samples[i].Time.Temps;
-        Transitions_Computation(Temps, Samples[i].Acc.az);
+        for i := Flights[j].idxTaxiStart to Flights[j].idxTaxiStop do // flights only are processed
+        begin
+          Temps := Samples[i].Time.Temps;
+          Transitions_Computation(Temps, Samples[i].Acc.az);
+        end;
+      end
+      else
+      begin
+        for i := Flights[j].idxTakeOff to Flights[j].idxTouchDown do // flights only are processed
+        begin
+          Temps := Samples[i].Time.Temps;
+          Transitions_Computation(Temps, Samples[i].Acc.az);
+        end;
       end;
     ProgressBar1.Position := 80;
-    QueryPerformanceCounter(EndCount);
-    ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
-    Writeln(ResultFile, Format('Durée du exploite data: %.6f secondes', [ElapsedTime]));
+    // QueryPerformanceCounter(EndCount);
+    // ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
+    // Writeln(ResultFile, Format('Durée du exploite data: %.6f secondes', [ElapsedTime]));
 
     // Fourth step : Markov matrixes elaboration
-    QueryPerformanceCounter(StartCount);
+    // QueryPerformanceCounter(StartCount);
     Writeln(ResultFile, 'StartTime (s) :', Flights[0].TaxiStart / 3600000:10:3, ' EndTime (h) :', Flights[High(Flights)].TaxiStop / 3600000:10:3, ' FlightTime (h) :', FlightTime:10:3);
     Writeln(ResultFile, ' Classes (g)', #9, 'occurs');
     Matrixes_elaboration; // Markov matrixes computation
@@ -1111,10 +1101,10 @@ begin
     FlightTimeLabel.Caption := Format('Flight time = %5.1f h', [FlightTime]);
     RLabel.Caption := Format('R = %8.1f', [R]);
     Writeln(ResultFile, 'R = ', R:5:1);
-    QueryPerformanceCounter(EndCount);
-    ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
-    Writeln(ResultFile, Format('Durée du Kossira: %.6f secondes', [ElapsedTime]));
-    QueryPerformanceCounter(StartCount);
+    // QueryPerformanceCounter(EndCount);
+    // ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
+    // Writeln(ResultFile, Format('Durée du Kossira: %.6f secondes', [ElapsedTime]));
+    // QueryPerformanceCounter(StartCount);
     // Loading the content of all memo(s)
     Memo1.Lines.EndUpdate;
     Memo2.Lines.EndUpdate;
@@ -1125,14 +1115,14 @@ begin
   ProgressBar1.Position := 100;
   ax_AB.Free;
   // az_AB.Free;
-  QueryPerformanceCounter(EndCount);
-  ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
-  Writeln(ResultFile, Format('Durée de l''affichage: %.6f secondes', [ElapsedTime]));
+  // QueryPerformanceCounter(EndCount);
+  // ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
+  // Writeln(ResultFile, Format('Durée de l''affichage: %.6f secondes', [ElapsedTime]));
 end;
 
 procedure TMainForm.Data_Processing(Sender: TObject);
 begin
-  QueryPerformanceFrequency(Frequency);
+  // QueryPerformanceFrequency(Frequency);
   RunningLabel.Caption := 'Running';
   Application.ProcessMessages;
   ConfForm.ValidationButtonClick(Sender);
@@ -1169,7 +1159,7 @@ begin
   end;
   FileNameLabeledEdit.Text := FileName;
   Chart1.Title.Caption := FileName;
-  QueryPerformanceCounter(StartCount);
+  // QueryPerformanceCounter(StartCount);
   DataBytes := TFile.ReadAllBytes(FileName);
 
   if SortCheckBox.Checked then
@@ -1181,12 +1171,15 @@ begin
     FlightTimeLabel.Caption := 'Sort completed';
     Application.ProcessMessages;
   end;
-  ResFileName := Copy(FileName, 0, Length(FileName) - 4) + '.res';
+  if Taxi_IncludedCheckBox.Checked then
+    ResFileName := Copy(FileName, 0, Length(FileName) - 4) + '.ras'
+  else
+    ResFileName := Copy(FileName, 0, Length(FileName) - 4) + '.res';
   AssignFile(ResultFile, ResFileName);
   Rewrite(ResultFile);
-  QueryPerformanceCounter(EndCount);
-  ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
-  Writeln(ResultFile, Format('Durée du chargement du fichier: %.6f secondes', [ElapsedTime]));
+  // QueryPerformanceCounter(EndCount);
+  // ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
+  // Writeln(ResultFile, Format('Durée du chargement du fichier: %.6f secondes', [ElapsedTime]));
   FileProcessing(Sender);
   CloseFile(ResultFile);
 end;

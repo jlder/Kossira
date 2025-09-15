@@ -39,8 +39,5 @@ object OKRightDlg: TOKRightDlg
       'implemented with the collaboration of GF '
       'Mesnil')
     TabOrder = 1
-    ExplicitLeft = 8
-    ExplicitWidth = 348
-    ExplicitHeight = 170
   end
 end
