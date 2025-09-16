@@ -345,6 +345,7 @@ begin
   FlightTimeLabel.Caption := '';
   Label1.Caption := '';
   Label2.Caption := '';
+  RLabel.Caption := '';
 end;
 
 procedure AddSample(var Buf: TCircularBuffer; Sample: Double);

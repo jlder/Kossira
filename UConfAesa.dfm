@@ -333,7 +333,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'InterFlight (s)'
       TabOrder = 6
-      Text = '500'
+      Text = '800'
     end
     object PullUpTimeOutLabeledEdit: TLabeledEdit
       Left = 24

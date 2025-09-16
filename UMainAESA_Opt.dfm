@@ -21,7 +21,6 @@ object MainForm: TMainForm
     Align = alTop
     TabOrder = 0
     VerticalAlignment = taAlignTop
-    ExplicitWidth = 1365
     DesignSize = (
       1367
       49)
@@ -84,7 +83,6 @@ object MainForm: TMainForm
       Caption = 'Run'
       TabOrder = 1
       OnClick = RunButtonClick
-      ExplicitLeft = 1321
     end
     object ProgressBar1: TProgressBar
       Left = 406
@@ -147,8 +145,6 @@ object MainForm: TMainForm
     ActivePage = GraphTabSheet
     Align = alClient
     TabOrder = 1
-    ExplicitWidth = 1365
-    ExplicitHeight = 736
     object DataTabSheet: TTabSheet
       Caption = 'Data'
       object Memo2: TMemo
@@ -162,7 +158,6 @@ object MainForm: TMainForm
           'Time    Value')
         ScrollBars = ssVertical
         TabOrder = 0
-        ExplicitHeight = 714
       end
       object Memo3: TMemo
         Left = 137
@@ -175,7 +170,6 @@ object MainForm: TMainForm
           'Time    Value')
         ScrollBars = ssVertical
         TabOrder = 1
-        ExplicitHeight = 714
       end
       object Memo4: TMemo
         Left = 0
@@ -188,7 +182,6 @@ object MainForm: TMainForm
           'Time    Value')
         ScrollBars = ssVertical
         TabOrder = 2
-        ExplicitHeight = 714
       end
       object Memo1: TMemo
         Left = 418
@@ -233,8 +226,6 @@ object MainForm: TMainForm
         View3D = False
         Align = alClient
         TabOrder = 0
-        ExplicitWidth = 1357
-        ExplicitHeight = 706
         DefaultCanvas = ''
         ColorPaletteIndex = 13
         object Series3: TLineSeries

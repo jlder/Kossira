@@ -95,7 +95,7 @@ var
   Samples: array of TSample;
   DataBytes: TBytes; // données binaires chargées
   Repere: Integer; // 1 for ENU   , -1 for NED
-  Swap:Boolean;
+  Swap: Boolean;
   ResultFile: TextFile;
 
 procedure DecodeTime(const Buffer: TBuffer; var Time: TTimeRec);
@@ -165,14 +165,12 @@ begin
     Acc.Ax := SmallInt((AccMsg.Ax_H shl 8) or AccMsg.Ax_L) / 2048;
     Acc.Ay := SmallInt((AccMsg.Ay_H shl 8) or AccMsg.Ay_L) / 2048;
     Acc.Az := -SmallInt((AccMsg.Az_H shl 8) or AccMsg.Az_L) / 2048 * Repere;
-    if Not Swap and (Abs(Acc.Ax) > Abs(Acc.Az)) then  //Swap Ax<->Az
-      Swap:=True;
-    if Swap then  //Swap Ax<->Az
+    if Swap then // Swap Ax<->Az
     begin
       ac := Acc.Ax;
       Acc.Ax := -Acc.Az * Repere;
       Acc.Az := -ac * Repere;
-      Swap:=True;
+      Swap := True;
     end;
 
     // Write(ResultFile, Acc.Ax:10:3, ',', Acc.Ay:10:3, ',', Acc.Az:10:3, ',', Acc.Temperature:5:1, ',');
@@ -267,7 +265,7 @@ begin
   // DataBytes := TFile.ReadAllBytes(FileName);
   SetLength(Samples, 0);
   offset := 0;
-  Swap:=False;
+  Swap := False;
   // Synchronisation sur premier header Temps
   while HasBytes(2) do
   begin
@@ -297,6 +295,8 @@ begin
         begin
           DecodeAcc(Buf, S.Acc);
           Include(S.ParamsFound, pkAcc);
+          if (Offset<10*MsgLength) and Not Swap and (Abs(S.Acc.Ax) > Abs(S.Acc.Az)) then // Swap Ax<->Az
+            Swap := True;
         end;
       PID_GYRO:
         begin
