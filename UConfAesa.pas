@@ -32,7 +32,6 @@ type
     PullUpDelayLabeledEdit: TLabeledEdit;
     DecDelayLabeledEdit: TLabeledEdit;
     RepereRadioGroup: TRadioGroup;
-    DataCheckListBox: TCheckListBox;
     ButterWorthRadioGroup: TRadioGroup;
     Panel4: TPanel;
     w1LabeledEdit: TLabeledEdit;
@@ -50,7 +49,6 @@ type
     TouchTimeOutLabeledEdit: TLabeledEdit;
     StopLabeledEdit: TLabeledEdit;
     procedure ValidationButtonClick(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
   private
     { Déclarations privées }
   public
@@ -216,15 +214,6 @@ begin
     Result := False;
 end;
 
-
-procedure TConfForm.FormCreate(Sender: TObject);
-begin
-DataCheckListBox.Checked[0]:=True;
-DataCheckListBox.Checked[1]:=True;
-DataCheckListBox.Checked[2]:=True;
-DataCheckListBox.Checked[3]:=True;
-
-end;
 
 procedure TConfForm.ValidationButtonClick(Sender: TObject);
 

@@ -6,7 +6,6 @@ object ConfForm: TConfForm
   ClientWidth = 653
   Color = clBtnFace
   ParentFont = True
-  OnCreate = FormCreate
   DesignSize = (
     653
     548)
@@ -240,7 +239,7 @@ object ConfForm: TConfForm
       Font.Height = 16
       Font.Name = 'Segoe UI'
       Font.Style = []
-      ItemIndex = 2
+      ItemIndex = 3
       Items.Strings = (
         'Order 0'
         'Order2'
@@ -312,7 +311,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Touch (g)'
       TabOrder = 4
-      Text = '0.1'
+      Text = '0.035'
     end
     object IntegratorThresholdLabeledEdit: TLabeledEdit
       Left = 128
@@ -404,9 +403,9 @@ object ConfForm: TConfForm
     end
   end
   object RepereRadioGroup: TRadioGroup
-    Left = 485
-    Top = 482
-    Width = 123
+    Left = 488
+    Top = 463
+    Width = 120
     Height = 36
     Margins.Top = 0
     Margins.Bottom = 0
@@ -435,19 +434,6 @@ object ConfForm: TConfForm
     TabOrder = 3
     StyleName = 'Windows'
   end
-  object DataCheckListBox: TCheckListBox
-    Left = 224
-    Top = 463
-    Width = 121
-    Height = 66
-    ItemHeight = 15
-    Items.Strings = (
-      'Time'
-      'Accelerometer'
-      'Gyrometer'
-      'Attitude')
-    TabOrder = 4
-  end
   object Panel4: TPanel
     Left = 0
     Top = 369
@@ -455,7 +441,7 @@ object ConfForm: TConfForm
     Height = 80
     Align = alTop
     Caption = 'Fusion parameters'
-    TabOrder = 5
+    TabOrder = 4
     VerticalAlignment = taAlignTop
     object w1LabeledEdit: TLabeledEdit
       Left = 16

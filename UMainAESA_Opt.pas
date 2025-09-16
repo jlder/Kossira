@@ -138,7 +138,6 @@ var
   Spectrum: Table_Spectrum;
   Flights: TFlights;
   flightIdx: Integer;
-  GyroPresent, AttPresent: Boolean;
   StdDevValueAxd, StdDevValueAxh, StdDevValueAzd, StdDevValueAzh: Extended;
   PullUp, PullUpDelay, PullUpTimeOut: Extended;
   IntegratorThreshold, IntegDelay: Extended;
@@ -313,9 +312,6 @@ begin
   THPBuf4z.y3 := 0;
   THPBuf4z.y4 := 0;
 
-  GyroPresent := ConfForm.DataCheckListBox.Checked[2];
-  AttPresent := ConfForm.DataCheckListBox.Checked[3];
-
   flightIdx := 0;
   setlength(Flights, 1);
   Flights[0].TaxiStart := 0;
@@ -381,11 +377,11 @@ end;
 
 function ComputeFFT(const Buf: TCircularBuffer): Boolean;
 var
-  Sum, Sum2: Double;
   i, N: Integer;
   amax1, amax2: Extended;
 begin
   N := Buf.Count;
+  ComputeFFT := False;
   if N < WindowSize then
     Exit; // Pas assez de données pour calculer
 
@@ -584,7 +580,7 @@ begin
             currFlight.idxTaxiStart := Index;
             Flights[flightIdx] := currFlight;
             phase := Taxi;
-            // Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi');
+            Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi');
           end;
         end;
 
@@ -594,7 +590,7 @@ begin
         if DetectTaxiConfirmStart(StdDevValueAzd, StdDevValueAzh) then
         begin
           phase := TaxiConfirm;
-          // Writeln(ResultFile, (Time64 / 1000.0) - PullUpDelay:8:3, ',', 'Taxi confirmed');
+          Writeln(ResultFile, (Time64 / 1000.0) - PullUpDelay:8:3, ',', 'Taxi confirmed');
         end
         else if (Time64 - currFlight.TaxiStart) / 1000.0 >= PullUpDelay then
         begin
@@ -611,7 +607,7 @@ begin
         currFlight.idxTakeOff := Index;
         Flights[flightIdx] := currFlight;
         phase := Air;
-        // Writeln(ResultFile, Time64 / 1000.0:8:3, 'Air');
+        Writeln(ResultFile, Time64 / 1000.0:8:3, 'Air');
       end;
 
     Air:
@@ -621,7 +617,7 @@ begin
         currFlight.idxTouchDown := Index;
         Flights[flightIdx] := currFlight;
         phase := Taxi2;
-        // Writeln(ResultFile, Time64 / 1000.0:8:3, ',', 'Taxi2');
+        Writeln(ResultFile, Time64 / 1000.0:8:3, ',', 'Taxi2');
       end;
 
     Taxi2:
@@ -636,7 +632,7 @@ begin
         phase := Landing;
         // Ajouter le vol détecté
         Flights[flightIdx] := currFlight;
-        // Writeln(ResultFile, Time64 / 1000.0:8:3, ',', 'Landing');
+        Writeln(ResultFile, Time64 / 1000.0:8:3, ',', 'Landing');
       end;
     Landing:
       // Attente d'un nouveau départ
@@ -654,6 +650,7 @@ begin
         currFlight.idxTakeOff := 0;
         currFlight.idxTouchDown := 0;
         currFlight.idxTaxiStop := 0;
+        currFlight.FlightTime := 0.0;
         Flights[flightIdx] := currFlight;
       end;
   end;
@@ -722,7 +719,7 @@ Var
   Checksum: Byte;
   NewSample: Extended;
 Var
-  Pitch, Ax, Ay, An, axh, ax_abs, Ax0: Extended;
+  Pitch, Ax, Ay, An, axh, ax_abs: Extended;
 
   Procedure Transitions_Computation(Temps, nff: Extended);
   begin
@@ -845,7 +842,7 @@ begin
   // QueryPerformanceCounter(StartCount);
   // Data processing
   // Loading RAM memory with all data from File in Sentences record
-  ParseData(DataBytes, GyroPresent, AttPresent);
+  ParseData(DataBytes);
   ProgressBar1.Position := 20;
   // Preliminary step : Max value
   // Looking for max value of StdDevValueAzh
@@ -858,15 +855,11 @@ begin
         Temps0 := Temps;
       deltaT := (Samples[i].Time.Temps - Samples[i].Time.Temps_1);
       Ax := Samples[i].Acc.Ax;
-      If (Temps - Temps0 < 10) then
-        Ax0 := 0.9 * Ax0 + 0.1 * Ax;
       Ay := Samples[i].Acc.Ay;
       nff := Samples[i].Acc.az; // Taking account of the frame NED or not
-      An := Sqrt(Ax * Ax + Ay * Ay + nff * nff) - 1.0;
+      An := Sqrt(Ax * Ax + Ay * Ay + nff * nff);
       if An > Maxn then
         Maxn := An;
-      // Series6.Title := 'Maxn';
-      // Series6.Addxy(Temps, Maxn); // black curve
     end
     else
     begin
@@ -887,7 +880,6 @@ begin
   // QueryPerformanceCounter(StartCount);
   RunningLabel.Caption := 'Flight Status';
   Initialisation(Sender);
-  Ax0 := 0.0;
   for i := 0 to High(Samples) do // Scanning throw all the data
   begin
     if (Samples[i].Acc.Success) and (Samples[i].Time.Success_t) then // If accelerations are valid
@@ -899,11 +891,9 @@ begin
       // Writeln(ResultFile,Temps:8:3,',',deltaT:8:3);
       // deltaT:=0.05;
       Ax := Samples[i].Acc.Ax / Maxn;
-      If (Temps - Temps0 < 10) then
-        Ax0 := 0.9 * Ax0 + 0.1 * Ax;
       Ay := Samples[i].Acc.Ay / Maxn;
       nff := Samples[i].Acc.az / Maxn; // Taking account of the frame NED or not
-      An := Sqrt(Ax * Ax + Ay * Ay + nff * nff) - 1.0;
+      An := Sqrt(Ax * Ax + Ay * Ay + nff * nff);
       // Pitch := Samples[i].Att.Pitch;
       // ax_abs := Ax * cos(Pitch) + (nff - 1) * Gravity * sin(Pitch);
       // ax_AB.ABupdate(deltaT, ax_abs);
@@ -912,15 +902,13 @@ begin
       // Offset := Ki * Velocity + Kp * ax_AB.ABfilt;
       // Velocity := Velocity + (ax_AB.ABfilt  - Offset  ) * deltaT;
       az_AB.ABupdate(deltaT, An); // use alphabeta filter to get the variation
-      AddSample(BufAzd, az_AB.ABfilt); // and add this variation in the circular buffer for standard deviation computing
+      AddSample(BufAzd, An); // and add this variation in the circular buffer for standard deviation computing
       // AddSample(BufAxd, ax_AB.ABfilt);
       // StdDevValueAxd := ComputeStdDev(Temps, BufAxd);
       StdDevValueAzd := ComputeStdDev(Temps, BufAzd);
       if FFTCheckBox.Checked then
       begin
-        Var
-          FFT_Success: Boolean;
-        FFT_Success := ComputeFFT(BufAzd);
+        ComputeFFT(BufAzd);
       end
       else
       begin;
@@ -933,7 +921,7 @@ begin
           2:
             nfh := Abs(HighPass_Filter4(HPBuf4, An)); // Butterworth order 4
           3:
-            nfh := Abs(HighPass_Filter4(THPBuf4z, az_AB.ABprim)); // Butterworth order 4
+            nfh := Abs(HighPass_Filter4(THPBuf4z, An)); // Butterworth order 4
         end;
         AddSample(BufAzh, nfh); // add the absolute value of the butterworth output
         StdDevValueAzh := ComputeStdDev(Temps, BufAzh);
@@ -950,7 +938,7 @@ begin
           Series1.Title := 'inFlight';
           // Series2.Title := 'StdDevValueAxd';
           // Series3.Title := 'StdDevValueAzh';
-          Series3.Title := 'An';
+          Series3.Title := 'Az';
           Series6.Title := 'StdDevValueAn';
           // Series6.Title := 'IAzh';
           // Series7.Title := 'StdDevValueAzh';
@@ -962,7 +950,7 @@ begin
           // Series7.Addxy(Temps, StdDevValueAxh); // black curve
           // Series7.Addxy(Temps, StdDevValueAzh+StdDevValueAzd,'',clBlack); // black curve
           Series2.Addxy(Temps, StdDevValueAzh); // red curve
-          // Series3.Addxy(Temps, (nff)); // purple curve
+          // Series3.Addxy(Temps, (Samples[i].Acc.az)); // purple curve
           // Series6.Addxy(Temps, Iazh); // blue curve
           // Series3.Addxy(Temps, StdDevValueAzh,'',clPurple; // purple curve
           case phase of
@@ -1015,6 +1003,8 @@ begin
   // Second step : Average for flight status = inFlight
   // QueryPerformanceCounter(StartCount);
   RunningLabel.Caption := 'Averaging';
+  nq_avg := 0;
+  Count := 0;
   Application.ProcessMessages;
   for j := 0 to High(Flights) do // Scanning of the flights inside the record
     for i := Flights[j].idxTakeOff to Flights[j].idxTouchDown do // flights only are processed
@@ -1023,6 +1013,11 @@ begin
       begin
         Count := Count + 1;
         nff_sum := nff_sum + Samples[i].Acc.az; // Sum of all accelerations measured during flight only
+      end
+      else
+      begin // if count is null meaning that there are no acceleration valid during any flight
+        Application.MessageBox('One acceleration is not valid', 'ATTENTION', IDOK);
+        // Halt(0);
       end;
     end;
 
@@ -1031,8 +1026,8 @@ begin
     nq_avg := trunc((nff_sum / Count - LowG) / QuantumRough)
   else
   begin // if count is null meaning that there are no acceleration valid during any flight
-    Application.MessageBox('No acceleration are valid', 'ATTENTION', IDOK);
-    // Halt(0);
+    Application.MessageBox('No acceleration are valid or error in flight phase detection', 'ATTENTION', IDOK);
+    //Halt(0);
   end;
   Label1.Caption := Format('nq_avg = %2d', [nq_avg]);
   LigneAGrossir := nq_avg;

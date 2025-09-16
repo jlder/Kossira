@@ -3,10 +3,13 @@
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.IOUtils,UConfAESA; // ← pour TFile et ReadAllBytes
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.IOUtils, UConfAESA; // ← pour TFile et ReadAllBytes
 
 Const
   MsgLength = 11;
+
+type
+  TParamKind = (pkTime, pkAcc, pkGyr, pkAtt);
 
 type
   TTimeMessage = packed record
@@ -64,7 +67,7 @@ type
 type
   TTimeRec = record
     TimeMs: Int64;
-    Temps,Temps_1:Extended;
+    Temps, Temps_1: Extended;
     Success_t: Boolean;
   end;
 
@@ -73,6 +76,7 @@ type
     Acc: TAcc;
     Gyr: TGyr; // Optionnal
     Att: TAtt; // Optionnal
+    ParamsFound: set of TParamKind;
   end;
 
   TFlightInfo = record
@@ -91,14 +95,14 @@ var
   Samples: array of TSample;
   DataBytes: TBytes; // données binaires chargées
   Repere: Integer; // 1 for ENU   , -1 for NED
-
+  Swap:Boolean;
   ResultFile: TextFile;
 
 procedure DecodeTime(const Buffer: TBuffer; var Time: TTimeRec);
-procedure DecodeAcc(const Buffer: TBuffer; var Acc: TAcc);
-procedure DecodeGyr(const Buffer: TBuffer; var Gyr: TGyr);
-procedure DecodeAtt(const Buffer: TBuffer; var Att: TAtt);
-procedure ParseData(DataBytes: TBytes; GyroPresent, AttPresent: Boolean);
+// procedure DecodeAcc(const Buffer: TBuffer; var Acc: TAcc);
+// procedure DecodeGyr(const Buffer: TBuffer; var Gyr: TGyr);
+// procedure DecodeAtt(const Buffer: TBuffer; var Att: TAtt);
+procedure ParseData(DataBytes: TBytes);
 
 implementation
 
@@ -149,8 +153,10 @@ begin
 end;
 
 procedure DecodeAcc(const Buffer: TBuffer; var Acc: TAcc);
+Var
+  ac: Extended;
 begin
-    Acc.Success:=False;
+  Acc.Success := False;
   Move(Buffer, AccMsg, SizeOf(AccMsg));
   Checksum := CalcChecksum(Buffer, 10); // 9 premiers octets
   if Checksum = AccMsg.Checksum then
@@ -159,9 +165,20 @@ begin
     Acc.Ax := SmallInt((AccMsg.Ax_H shl 8) or AccMsg.Ax_L) / 2048;
     Acc.Ay := SmallInt((AccMsg.Ay_H shl 8) or AccMsg.Ay_L) / 2048;
     Acc.Az := -SmallInt((AccMsg.Az_H shl 8) or AccMsg.Az_L) / 2048 * Repere;
-    Acc.Temperature := SmallInt((AccMsg.Temp_H shl 8) or AccMsg.Temp_L) / 100.0;
-    if (Acc.Az >= LowG) and (Acc.Az <= HighG) then Acc.Success:=True;//Checksum is ok and accelerations are inside the valid range
+    if Not Swap and (Abs(Acc.Ax) > Abs(Acc.Az)) then  //Swap Ax<->Az
+      Swap:=True;
+    if Swap then  //Swap Ax<->Az
+    begin
+      ac := Acc.Ax;
+      Acc.Ax := -Acc.Az * Repere;
+      Acc.Az := -ac * Repere;
+      Swap:=True;
+    end;
+
     // Write(ResultFile, Acc.Ax:10:3, ',', Acc.Ay:10:3, ',', Acc.Az:10:3, ',', Acc.Temperature:5:1, ',');
+    Acc.Temperature := SmallInt((AccMsg.Temp_H shl 8) or AccMsg.Temp_L) / 100.0;
+    if (Acc.Az >= LowG) and (Acc.Az <= HighG) then
+      Acc.Success := True; // Checksum is ok and accelerations are inside the valid range
   end
   else
     // Writeln(ResultFile, 'Erreur checksum acc');
@@ -205,8 +222,15 @@ begin
     // Writeln(ResultFile, 'Erreur checksum acc');
 end;
 
-procedure ParseData(DataBytes: TBytes; GyroPresent, AttPresent: Boolean);
-var
+procedure ParseData(DataBytes: TBytes);
+Const
+  HeaderLength = 2;
+  PID_TIME = 20565; // $5550 temps, header constitué de 0x55 0x50
+  PID_ACC = 20821; // $5551 Accélération, header constitué de 0x55 0x51
+  PID_GYRO = 21077; // $5552 Gyroscope, header 0x55 0x52
+  PID_ATT = 21333; // $5553 Attitude, header 0x55 0x53
+Var
+  ParamID: Word;
   offset: Integer;
   S: TSample;
   Buf: TBuffer;
@@ -215,12 +239,35 @@ var
   begin
     Result := (offset + Count <= Length(DataBytes));
   end;
+  function DecodeHeader(const Buf: array of Byte): Word;
+  begin
+    // Header sur 2 octets : combine les deux bytes
+    Result := Buf[0] + (Buf[1] shl 8);
+  end;
+  procedure ClearSample(var S: TSample);
+  begin
+    FillChar(S.Time, SizeOf(S.Time), 0);
+    FillChar(S.Acc, SizeOf(S.Acc), 0);
+    FillChar(S.Gyr, SizeOf(S.Gyr), 0);
+    FillChar(S.Att, SizeOf(S.Att), 0);
+    S.ParamsFound := [];
+  end;
+  function AllParamsForSampleReady(const S: TSample): Boolean;
+  begin
+    if not(pkTime in S.ParamsFound) then
+      Exit(False);
+    if not(pkAcc in S.ParamsFound) then
+      Exit(False);
+    // Trame complète si temps et acc décodés,
+    // + tous paramètres optionnels déjà rencontrés
+    Result := (pkGyr in S.ParamsFound) or not(pkGyr in S.ParamsFound) and (pkAtt in S.ParamsFound) or not(pkAtt in S.ParamsFound);
+  end;
 
 begin
   // DataBytes := TFile.ReadAllBytes(FileName);
   SetLength(Samples, 0);
   offset := 0;
-
+  Swap:=False;
   // Synchronisation sur premier header Temps
   while HasBytes(2) do
   begin
@@ -231,50 +278,53 @@ begin
   end;
 
   // Boucle principale de parsing par record
+  ClearSample(S);
   while True do
   begin
-    // Bloc Temps
-    if not HasBytes(MsgLength) then
+    if not(HasBytes(HeaderLength) and HasBytes(MsgLength)) then
       Break;
     Move(DataBytes[offset], Buf[0], MsgLength);
-    DecodeTime(Buf, S.Time);
+    ParamID := DecodeHeader(Buf); // lit le type/identifiant du bloc à décoder
+    // Inc(offset, HeaderLength);
+
+    case ParamID of
+      PID_TIME:
+        begin
+          DecodeTime(Buf, S.Time);
+          Include(S.ParamsFound, pkTime);
+        end;
+      PID_ACC:
+        begin
+          DecodeAcc(Buf, S.Acc);
+          Include(S.ParamsFound, pkAcc);
+        end;
+      PID_GYRO:
+        begin
+          DecodeGyr(Buf, S.Gyr);
+          Include(S.ParamsFound, pkGyr);
+        end;
+      PID_ATT:
+        begin
+          DecodeAtt(Buf, S.Att);
+          Include(S.ParamsFound, pkAtt);
+        end;
+    else
+      ClearSample(S); // ignorer ou traiter les paramètres inconnus
+    end;
     Inc(offset, MsgLength);
 
-    // Bloc Acc
-    if not HasBytes(MsgLength) then
-      Break;
-    Move(DataBytes[offset], Buf[0], MsgLength);
-    DecodeAcc(Buf, S.Acc);
-    Inc(offset, MsgLength);
+    // On continue jusqu'à épuisement des DataBytes (le while True break en fin de lecture)
 
-    // Gyro optionnal
-    if GyroPresent then
+    // Ajoute à Samples[] si tous paramètres attendus sont présents ou selon logique métier
+    // (exemple simple : on ajoute à chaque fin de lot)
+    if AllParamsForSampleReady(S) then
     begin
-      if not HasBytes(MsgLength) then
-        Break;
-      Move(DataBytes[offset], Buf[0], MsgLength);
-      DecodeGyr(Buf, S.Gyr);
-      Inc(offset, MsgLength);
-    end
-    else
-      FillChar(S.Gyr, SizeOf(S.Gyr), 0);
-
-    // Attitude optionnal
-    if AttPresent then
-    begin
-      if not HasBytes(MsgLength) then
-        Break;
-      Move(DataBytes[offset], Buf[0], MsgLength);
-      DecodeAtt(Buf, S.Att);
-      Inc(offset, MsgLength);
-    end
-    else
-      FillChar(S.Att, SizeOf(S.Att), 0);
-
-    // Add to Samples[]
-    SetLength(Samples, Length(Samples) + 1);
-    Samples[High(Samples)] := S;
+      SetLength(Samples, Length(Samples) + 1);
+      Samples[High(Samples)] := S;
+      ClearSample(S);
+    end;
   end;
+
 end;
 
 end.

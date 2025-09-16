@@ -2,7 +2,7 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'Determination of load spectra'
-  ClientHeight = 793
+  ClientHeight = 798
   ClientWidth = 1367
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -21,6 +21,7 @@ object MainForm: TMainForm
     Align = alTop
     TabOrder = 0
     VerticalAlignment = taAlignTop
+    ExplicitWidth = 1365
     DesignSize = (
       1367
       49)
@@ -83,6 +84,7 @@ object MainForm: TMainForm
       Caption = 'Run'
       TabOrder = 1
       OnClick = RunButtonClick
+      ExplicitLeft = 1321
     end
     object ProgressBar1: TProgressBar
       Left = 406
@@ -141,53 +143,58 @@ object MainForm: TMainForm
     Left = 0
     Top = 49
     Width = 1367
-    Height = 744
+    Height = 749
     ActivePage = GraphTabSheet
     Align = alClient
     TabOrder = 1
+    ExplicitWidth = 1365
+    ExplicitHeight = 736
     object DataTabSheet: TTabSheet
       Caption = 'Data'
       object Memo2: TMemo
         Left = 274
         Top = 0
         Width = 144
-        Height = 714
+        Height = 719
         Align = alLeft
         Lines.Strings = (
           'Resampled Data'
           'Time    Value')
         ScrollBars = ssVertical
         TabOrder = 0
+        ExplicitHeight = 714
       end
       object Memo3: TMemo
         Left = 137
         Top = 0
         Width = 137
-        Height = 714
+        Height = 719
         Align = alLeft
         Lines.Strings = (
           'Sampled Data'
           'Time    Value')
         ScrollBars = ssVertical
         TabOrder = 1
+        ExplicitHeight = 714
       end
       object Memo4: TMemo
         Left = 0
         Top = 0
         Width = 137
-        Height = 714
+        Height = 719
         Align = alLeft
         Lines.Strings = (
           'Raw Data'
           'Time    Value')
         ScrollBars = ssVertical
         TabOrder = 2
+        ExplicitHeight = 714
       end
       object Memo1: TMemo
         Left = 418
         Top = 0
         Width = 167
-        Height = 714
+        Height = 719
         Align = alLeft
         Lines.Strings = (
           'Kossira')
@@ -201,7 +208,7 @@ object MainForm: TMainForm
         Left = 0
         Top = 0
         Width = 1359
-        Height = 714
+        Height = 719
         Legend.Alignment = laBottom
         Legend.FontSeriesColor = True
         Legend.LegendStyle = lsSeries
@@ -226,6 +233,8 @@ object MainForm: TMainForm
         View3D = False
         Align = alClient
         TabOrder = 0
+        ExplicitWidth = 1357
+        ExplicitHeight = 706
         DefaultCanvas = ''
         ColorPaletteIndex = 13
         object Series3: TLineSeries
@@ -333,7 +342,6 @@ object MainForm: TMainForm
         Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goFixedRowDefAlign]
         TabOrder = 0
         OnDrawCell = MarcovStringGrid1DrawCell
-        ExplicitHeight = 709
       end
     end
     object Marcov2TabSheet: TTabSheet
@@ -356,7 +364,6 @@ object MainForm: TMainForm
         ParentCtl3D = False
         TabOrder = 0
         OnDrawCell = MarcovStringGrid2DrawCell
-        ExplicitHeight = 709
       end
       object spectrumStringGrid: TStringGrid
         Left = 1238
@@ -371,7 +378,6 @@ object MainForm: TMainForm
         FixedColor = clMoneyGreen
         RowCount = 33
         TabOrder = 1
-        ExplicitHeight = 709
       end
     end
     object SpectraTabSheet: TTabSheet
@@ -398,7 +404,6 @@ object MainForm: TMainForm
         View3D = False
         Align = alClient
         TabOrder = 0
-        ExplicitHeight = 709
         DefaultCanvas = ''
         ColorPaletteIndex = 13
         object Series4: TLineSeries

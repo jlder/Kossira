@@ -47,7 +47,7 @@ var
   Nb_Messages,TailleMessages:Integer;
 
 begin
-  Nb_Messages:=CountCheckedItems(ConfForm.DataCheckListBox);
+  Nb_Messages:=2;
   TailleMessages:=MsgLength*Nb_Messages;
   SetLength(TempsMsg.RawMsg,TailleMessages);
   TotalLength := Length(DataBytes);
