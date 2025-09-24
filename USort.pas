@@ -41,7 +41,6 @@ var
   TimeMsg: TBuffer;
   List: array of TMsgWithTime;
   TempsMsg: TMsgWithTime;
-  TimeVal: Extended;
   TimeRec:TTimeRec;
   i, PairCount: Integer;
   Nb_Messages,TailleMessages:Integer;

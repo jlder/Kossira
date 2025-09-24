@@ -92,6 +92,10 @@ type
     Series2: TPointSeries;
     DXLabeledEdit: TLabeledEdit;
     Taxi_IncludedCheckBox: TCheckBox;
+    TimeLabel: TLabel;
+    AccelLabel: TLabel;
+    GyroLabel: TLabel;
+    AttitudeLabel: TLabel;
     Procedure Initialisation(Sender: TObject);
     procedure RunButtonClick(Sender: TObject);
     procedure ConfButtonClick(Sender: TObject);
@@ -346,6 +350,10 @@ begin
   Label1.Caption := '';
   Label2.Caption := '';
   RLabel.Caption := '';
+  TimeLabel.Visible := False;
+  AccelLabel.Visible := False;
+  GyroLabel.Visible := False;
+  AttitudeLabel.Visible := False;
 end;
 
 procedure AddSample(var Buf: TCircularBuffer; Sample: Double);
@@ -745,8 +753,8 @@ Var
         // look for min max by checking slope sign change
         if GraphCheckBox.Checked then
         begin
-          Series2.Title := 'nq';
-          Series2.Addxy(Temps, nq);
+          // Series2.Title := 'nq';
+          // Series2.Addxy(Temps, nq);
         end;
         if ((nq - nq_1) > 0) then
           slope := 1
@@ -763,8 +771,8 @@ Var
           // Series1.AddXY(Temps, n * UnderSample div ClassNumbers);
           if GraphCheckBox.Checked then
           begin
-            Series7.Title := 'minmax';
-            Series7.Addxy(Temps, minmax);
+            // Series7.Title := 'minmax';
+            // Series7.Addxy(Temps, minmax);
           end;
           // keep track of last minmax
           minmax_1 := minmax;
@@ -844,6 +852,9 @@ begin
   // Data processing
   // Loading RAM memory with all data from File in Sentences record
   ParseData(DataBytes);
+  if length(Samples) = 0 then
+    Exit;
+
   ProgressBar1.Position := 20;
   // Preliminary step : Max value
   // Looking for max value of StdDevValueAzh
@@ -874,13 +885,29 @@ begin
   // QueryPerformanceCounter(EndCount);
   // ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
   // Writeln(ResultFile, Format('Durée du calcul des maxs: %.6f secondes', [ElapsedTime]));
-  Application.ProcessMessages;
 
   // First step : Flight status determination
   // Looking for flight status
   // QueryPerformanceCounter(StartCount);
   RunningLabel.Caption := 'Flight Status';
   Initialisation(Sender);
+  If Samples[10].Time.Success_t then
+    TimeLabel.Visible := True
+  else
+    TimeLabel.Visible := False;
+  If Samples[10].Acc.Success then
+    AccelLabel.Visible := True
+  else
+    AccelLabel.Visible := False;
+  If Samples[10].Gyr.Success then
+    GyroLabel.Visible := True
+  else
+    GyroLabel.Visible := False;
+  If Samples[10].Att.Success then
+    AttitudeLabel.Visible := True
+  else
+    AttitudeLabel.Visible := False;
+  Application.ProcessMessages;
   for i := 0 to High(Samples) do // Scanning throw all the data
   begin
     if (Samples[i].Acc.Success) and (Samples[i].Time.Success_t) then // If accelerations are valid
@@ -889,9 +916,10 @@ begin
       If Temps0 = 0.0 then
         Temps0 := Temps;
       deltaT := (Samples[i].Time.Temps - Samples[i].Time.Temps_1);
+      if deltaT>0.1 then deltaT:=0.05;
       // Writeln(ResultFile,Temps:8:3,',',deltaT:8:3);
       // deltaT:=0.05;
-      Ax := Samples[i].Acc.Ax / Maxn;
+      Ax := Samples[i].Acc.Ax;
       Ay := Samples[i].Acc.Ay / Maxn;
       nff := Samples[i].Acc.az / Maxn; // Taking account of the frame NED or not
       An := Sqrt(Ax * Ax + Ay * Ay + nff * nff);
@@ -903,9 +931,10 @@ begin
       // Offset := Ki * Velocity + Kp * ax_AB.ABfilt;
       // Velocity := Velocity + (ax_AB.ABfilt  - Offset  ) * deltaT;
       az_AB.ABupdate(deltaT, An); // use alphabeta filter to get the variation
+      ax_AB.ABupdate(deltaT, Ax); // use alphabeta filter to get the variation
       AddSample(BufAzd, An); // and add this variation in the circular buffer for standard deviation computing
-      // AddSample(BufAxd, ax_AB.ABfilt);
-      // StdDevValueAxd := ComputeStdDev(Temps, BufAxd);
+      AddSample(BufAxd, ax_AB.ABfilt);
+      StdDevValueAxd := ComputeStdDev(Temps, BufAxd);
       StdDevValueAzd := ComputeStdDev(Temps, BufAzd);
       if FFTCheckBox.Checked then
       begin
@@ -937,49 +966,50 @@ begin
         if GraphCheckBox.Checked and Not MainForm.FFTCheckBox.Checked then
         begin
           Series1.Title := 'inFlight';
-          // Series2.Title := 'StdDevValueAxd';
+          // Series1.Title := 'Axh';
+          Series2.Title := 'StdDevValueAxd';
           // Series3.Title := 'StdDevValueAzh';
-          Series3.Title := 'Az';
+          Series3.Title := 'An';
           Series6.Title := 'StdDevValueAn';
           // Series6.Title := 'IAzh';
-          // Series7.Title := 'StdDevValueAzh';
-          Series2.Title := 'StdDevValueAnh';
-          // Series1.Addxy(Temps, StdDevValueAxh);
-          // Series2.Addxy(Temps, StdDevValueAxd);
+          Series7.Title := 'StdDevValueAzh';
+          // Series2.Title := 'StdDevValueAnh';
+          //Series1.Addxy(Temps, StdDevValueAxh * 10.0);
+          Series2.Addxy(Temps, StdDevValueAxd);
           Series3.Addxy(Temps, An, '', clpurple); // purple curve
           Series6.Addxy(Temps, StdDevValueAzd); // black curve
           // Series7.Addxy(Temps, StdDevValueAxh); // black curve
-          // Series7.Addxy(Temps, StdDevValueAzh+StdDevValueAzd,'',clBlack); // black curve
-          Series2.Addxy(Temps, StdDevValueAzh); // red curve
-          // Series3.Addxy(Temps, (Samples[i].Acc.az)); // purple curve
+          Series7.Addxy(Temps, StdDevValueAzh); // black curve
+          // Series2.Addxy(Temps, StdDevValueAxh); // red curve
+          // Series3.Addxy(Temps, (Samples[i].acc.az)); // purple curve
           // Series6.Addxy(Temps, Iazh); // blue curve
           // Series3.Addxy(Temps, StdDevValueAzh,'',clPurple; // purple curve
-          case phase of
+           case phase of
             Idle:
-              begin
-                Series1.Addxy(Temps, 0);
-              end;
+            begin
+            Series1.Addxy(Temps, 0);
+            end;
             Taxi:
-              begin
-                Series1.Addxy(Temps, 0.1);
-              end;
+            begin
+            Series1.Addxy(Temps, 0.1);
+            end;
             TaxiConfirm:
-              begin
-                Series1.Addxy(Temps, 0.2);
-              end;
+            begin
+            Series1.Addxy(Temps, 0.2);
+            end;
             Air:
-              begin
-                Series1.Addxy(Temps, 0.3);
-              end;
+            begin
+            Series1.Addxy(Temps, 0.3);
+            end;
             Taxi2:
-              begin
-                Series1.Addxy(Temps, 0.4);
-              end;
+            begin
+            Series1.Addxy(Temps, 0.4);
+            end;
             Landing:
-              begin
-                Series1.Addxy(Temps, 0.5);
-              end;
-          end;
+            begin
+            Series1.Addxy(Temps, 0.5);
+            end;
+            end;
         end;
       end;
     end
@@ -1028,7 +1058,7 @@ begin
   else
   begin // if count is null meaning that there are no acceleration valid during any flight
     Application.MessageBox('No acceleration are valid or error in flight phase detection', 'ATTENTION', IDOK);
-    //Halt(0);
+    // Halt(0);
   end;
   Label1.Caption := Format('nq_avg = %2d', [nq_avg]);
   LigneAGrossir := nq_avg;
@@ -1168,9 +1198,9 @@ begin
     Application.ProcessMessages;
   end;
   if Taxi_IncludedCheckBox.Checked then
-    ResFileName := Copy(FileName, 0, Length(FileName) - 4) + '.ras'
+    ResFileName := Copy(FileName, 0, length(FileName) - 4) + '.ras'
   else
-    ResFileName := Copy(FileName, 0, Length(FileName) - 4) + '.res';
+    ResFileName := Copy(FileName, 0, length(FileName) - 4) + '.res';
   AssignFile(ResultFile, ResFileName);
   Rewrite(ResultFile);
   // QueryPerformanceCounter(EndCount);

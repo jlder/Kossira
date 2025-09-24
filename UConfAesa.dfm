@@ -19,6 +19,7 @@ object ConfForm: TConfForm
     Caption = 'Discretization'
     TabOrder = 0
     VerticalAlignment = taAlignTop
+    ExplicitWidth = 651
     object Label1: TLabel
       Left = 432
       Top = 24
@@ -104,6 +105,7 @@ object ConfForm: TConfForm
     Caption = 'Filtering'
     TabOrder = 1
     VerticalAlignment = taAlignTop
+    ExplicitWidth = 651
     object dtLabeledEdit: TLabeledEdit
       Left = 16
       Top = 33
@@ -258,6 +260,7 @@ object ConfForm: TConfForm
     Caption = 'Takeoff and landing threshold'
     TabOrder = 2
     VerticalAlignment = taAlignTop
+    ExplicitWidth = 651
     object DecelerationLabeledEdit: TLabeledEdit
       Left = 225
       Top = 42
@@ -267,7 +270,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Deceleration (g)'
       TabOrder = 0
-      Text = '0.075'
+      Text = '0.085'
     end
     object PullUpLabeledEdit: TLabeledEdit
       Left = 24
@@ -433,6 +436,7 @@ object ConfForm: TConfForm
     ShowFrame = False
     TabOrder = 3
     StyleName = 'Windows'
+    ExplicitLeft = 486
   end
   object Panel4: TPanel
     Left = 0
@@ -443,6 +447,7 @@ object ConfForm: TConfForm
     Caption = 'Fusion parameters'
     TabOrder = 4
     VerticalAlignment = taAlignTop
+    ExplicitWidth = 651
     object w1LabeledEdit: TLabeledEdit
       Left = 16
       Top = 42

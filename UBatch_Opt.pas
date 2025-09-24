@@ -19,6 +19,7 @@ type
     OverLabel: TLabel;
     FlightTimeLabel: TLabel;
     RLabel: TLabel;
+    DriveComboBox1: TDriveComboBox;
     procedure DirectoryListBox1Change(Sender: TObject);
     procedure FillFileList(const Directory: string);
     procedure RunButtonClick(Sender: TObject);
@@ -44,8 +45,7 @@ var
   FileName: string;
 begin
   ListBoxFiles.Clear;
-  Files := TDirectory.GetFiles(Directory, '*bin*.txt');
-  // Adapt. masque selon vos fichiers
+  Files := TDirectory.GetFiles(Directory, '*.bin', TSearchOption.soTopDirectoryOnly);
   for FileName in Files do
     ListBoxFiles.Items.Add(FileName);
 end;
@@ -89,8 +89,8 @@ begin
       Series4.Clear;
       Series5.Clear;
       Series6.Clear;
-      MainForm.Label1.Caption:='';
-      MainForm.Label2.Caption:='';
+      MainForm.Label1.Caption := '';
+      MainForm.Label2.Caption := '';
       if ConfForm.RepereRadioGroup.ItemIndex = 0 then
         Repere := 1
       else
@@ -109,12 +109,12 @@ begin
           Exit;
       end;
       FileNameLabeledEdit.Text := FileName;
-      DataBytes := TFile.ReadAllBytes(FileName);
       ResFileName := Copy(FileName, 0, Length(FileName) - 4) + '.res';
       AssignFile(ResultFile, ResFileName);
       if Not FileExists(ResFileName) then
       begin
         Rewrite(ResultFile);
+        DataBytes := TFile.ReadAllBytes(FileName);
         FileProcessing(Sender);
         for j := 0 to Taille_Spectrum do
           Cumul_Spectrum[j] := Cumul_Spectrum[j] + spectrum[j];
@@ -130,10 +130,10 @@ begin
           begin
             bidon2 := Copy(Bidon1, j, Length(Bidon1) - j);
             j := Pos(':', bidon2);
-            bidon2 := Copy(bidon2, j+1, Length(Bidon2) - j);
+            bidon2 := Copy(bidon2, j + 1, Length(bidon2) - j);
             FlightTime := StrToFloat(bidon2);
           end;
-        Until Pos('Classes', Bidon1) > 0;
+        Until (Pos('Classes', Bidon1) > 0) or EoF(ResultFile);
         For j := 0 to Taille_Spectrum do
         begin
           Readln(ResultFile, Classe, spectrum[j]);
@@ -154,7 +154,7 @@ begin
   begin
     Occurs := Cumul_Spectrum[j] * (6000.0) / (Cumul_FlightTime); // Normalisation for 6000h to be compared with the Kossira reference
     Classes := ((j + 0.5) * QuantumRough + LowG);
-    if Spectrum[j] <> 0 then
+    if spectrum[j] <> 0 then
     begin
       MainForm.spectrumStringGrid.Cells[1, Taille_Spectrum + 1 - j] := IntToStr(Cumul_Spectrum[j]);
       MainForm.Series5.Addxy(Occurs, Classes);

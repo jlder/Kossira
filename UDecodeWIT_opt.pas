@@ -123,7 +123,6 @@ end;
 procedure DecodeTime(const Buffer: TBuffer; var Time: TTimeRec);
 Var
   TimeMsg: TTimeMessage;
-
 begin
   if Buffer[1] = $50 then
   begin
@@ -140,7 +139,6 @@ begin
     end;
     if Time.Success_t then
     begin
-      Time.Temps_1 := Time.Temps;
       Time.Temps := Time.TimeMs / 1000.0;
       // Write(ResultFile, temps:10:3, ',', (Temps - Temps_1):8:3, ',');
     end
@@ -320,6 +318,16 @@ begin
     if AllParamsForSampleReady(S) then
     begin
       SetLength(Samples, Length(Samples) + 1);
+      if High(Samples)>0 then
+        begin
+        S.Time.Temps_1 := Samples[High(Samples)-1].Time.Temps;
+        if S.Time.Temps_1>S.Time.Temps then
+          begin
+          S.Time.Temps:=S.Time.Temps+86400;
+          S.Time.TimeMs:=Round(S.Time.Temps*1000.0);
+          S.Time.Temps_1:=86400;
+          end;
+        end;
       Samples[High(Samples)] := S;
       ClearSample(S);
     end;

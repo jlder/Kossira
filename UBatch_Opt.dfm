@@ -2,24 +2,25 @@ object BatchForm: TBatchForm
   Left = 0
   Top = 0
   Caption = 'Batch'
-  ClientHeight = 441
-  ClientWidth = 624
+  ClientHeight = 273
+  ClientWidth = 930
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -12
   Font.Name = 'Segoe UI'
   Font.Style = []
+  Position = poDesigned
   TextHeight = 15
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 624
+    Width = 930
     Height = 257
     Align = alTop
     Caption = 'Panel1'
     TabOrder = 0
-    ExplicitWidth = 622
+    ExplicitWidth = 928
     object Label1: TLabel
       Left = 24
       Top = 19
@@ -28,7 +29,7 @@ object BatchForm: TBatchForm
       Caption = 'Directory :'
     end
     object Label2: TLabel
-      Left = 216
+      Left = 432
       Top = 19
       Width = 47
       Height = 15
@@ -66,7 +67,7 @@ object BatchForm: TBatchForm
     end
     object DirectoryListBox1: TDirectoryListBox
       Left = 24
-      Top = 40
+      Top = 75
       Width = 145
       Height = 97
       TabOrder = 0
@@ -75,19 +76,27 @@ object BatchForm: TBatchForm
     object ListBoxFiles: TListBox
       Left = 216
       Top = 40
-      Width = 385
+      Width = 641
       Height = 97
       ItemHeight = 15
       TabOrder = 1
     end
     object RunButton: TButton
-      Left = 464
+      Left = 720
       Top = 9
       Width = 137
       Height = 25
       Caption = 'Run batch and wait'
       TabOrder = 2
       OnClick = RunButtonClick
+    end
+    object DriveComboBox1: TDriveComboBox
+      Left = 24
+      Top = 48
+      Width = 89
+      Height = 21
+      DirList = DirectoryListBox1
+      TabOrder = 3
     end
   end
 end
