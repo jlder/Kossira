@@ -83,6 +83,12 @@ type
     TaxiStart, TakeOff, TouchDown, TaxiStop: Int64; // in millisecondes
     IdxTaxiStart, IdxTakeOff, IdxTouchDown, IdxTaxiStop: Integer; // indexes in Samples[]
     FlightTime: Extended;
+    end;
+
+  TTaxiInfo = record
+    TaxiStart, TouchDown, TaxiStop: Int64; // in millisecondes
+    IdxTaxiStart, IdxTouchDown, IdxTaxiStop: Integer; // indexes in Samples[]
+    TaxiTime: Extended;
   end;
 
 var

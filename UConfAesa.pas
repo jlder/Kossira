@@ -48,6 +48,7 @@ type
     IntegTouchDelayLabeledEdit: TLabeledEdit;
     TouchTimeOutLabeledEdit: TLabeledEdit;
     StopLabeledEdit: TLabeledEdit;
+    FcRadioGroup: TRadioGroup;
     procedure ValidationButtonClick(Sender: TObject);
   private
     { Déclarations privées }

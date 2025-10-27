@@ -1,8 +1,8 @@
 ﻿[ClosedView_RDpcRGF0YVxKZWFuX0x1Y19EZXJvdWluZWF1XEFFU0FcVVNvcnQucGFz]
 Module=D:\Data\Jean_Luc_Derouineau\AESA\USort.pas
-CursorX=25
-CursorY=69
-TopLine=45
+CursorX=1
+CursorY=44
+TopLine=19
 LeftCol=1
 Elisions={{24,52},{32,3},{''}}{{34,54},{37,3},{''}}
 Bookmarks=
@@ -10,21 +10,21 @@ EditViewName=D:\Data\Jean_Luc_Derouineau\AESA\USort.pas
 
 [ClosedView_RDpcRGF0YVxKZWFuX0x1Y19EZXJvdWluZWF1XEFFU0FcVU1haW5BRVNBX09wdC5wYXM=]
 Module=D:\Data\Jean_Luc_Derouineau\AESA\UMainAESA_Opt.pas
-CursorX=22
-CursorY=965
-TopLine=952
+CursorX=10
+CursorY=1345
+TopLine=1328
 LeftCol=1
-Elisions={{733,58},{787,6},{''}}{{789,33},{846,6},{''}}
+Elisions={{761,58},{815,6},{''}}{{817,33},{874,6},{''}}
 Bookmarks=
 EditViewName=D:\Data\Jean_Luc_Derouineau\AESA\UMainAESA_Opt.pas
 
 [ClosedView_RDpcRGF0YVxKZWFuX0x1Y19EZXJvdWluZWF1XEFFU0FcVURlY29kZVdJVF9vcHQucGFz]
 Module=D:\Data\Jean_Luc_Derouineau\AESA\UDecodeWIT_opt.pas
-CursorX=52
-CursorY=329
-TopLine=303
+CursorX=9
+CursorY=91
+TopLine=61
 LeftCol=1
-Elisions={{236,45},{239,6},{''}}{{240,56},{244,6},{''}}{{245,40},{252,6},{''}}{{253,62},{262,6},{''}}
+Elisions=
 Bookmarks=
 EditViewName=D:\Data\Jean_Luc_Derouineau\AESA\UDecodeWIT_opt.pas
 
@@ -32,9 +32,9 @@ EditViewName=D:\Data\Jean_Luc_Derouineau\AESA\UDecodeWIT_opt.pas
 Module=D:\Data\Jean_Luc_Derouineau\AESA\UConfAesa.pas
 CursorX=1
 CursorY=138
-TopLine=125
+TopLine=132
 LeftCol=1
-Elisions=
+Elisions={{138,63},{208,3},{''}}
 Bookmarks=
 EditViewName=D:\Data\Jean_Luc_Derouineau\AESA\UConfAesa.pas
 [ClosedView_ZDpcZW1iYXJjYWRlcm9cc3R1ZGlvXDIzLjBcc291cmNlXHJ0bFxjb21tb25cU3lzdGVtLkNsYXNz
@@ -110,8 +110,8 @@ EditViewName=
 
 [ClosedView_RDpcRGF0YVxKZWFuX0x1Y19EZXJvdWluZWF1XEFFU0FcVUJhdGNoX09wdC5wYXM=]
 Module=D:\Data\Jean_Luc_Derouineau\AESA\UBatch_Opt.pas
-CursorX=1
-CursorY=114
+CursorX=14
+CursorY=92
 TopLine=81
 LeftCol=1
 Elisions=
@@ -170,11 +170,41 @@ EditViewName=d:\embarcadero\studio\23.0\SOURCE\RTL\SYS\System.SysUtils.pas
 
 [ClosedView_RDpcRGF0YVxKZWFuX0x1Y19EZXJvdWluZWF1XEFFU0FcVUJ1dHRlcndvcnRoLnBhcw==]
 Module=D:\Data\Jean_Luc_Derouineau\AESA\UButterworth.pas
-CursorX=12
-CursorY=52
-TopLine=40
+CursorX=81
+CursorY=92
+TopLine=58
+LeftCol=1
+Elisions={{30,76},{52,3},{''}}
+Bookmarks=
+EditViewName=D:\Data\Jean_Luc_Derouineau\AESA\UButterworth.pas
+
+[ClosedView_QzpcRGF0YVxKZWFuX0x1Y19EZXJvdWluZWF1XERhdGFcQUVTQVxVTWFpbkFFU0FfT3B0LnBhcw==]
+Module=C:\Data\Jean_Luc_Derouineau\Data\AESA\UMainAESA_Opt.pas
+CursorX=52
+CursorY=6
+TopLine=1
 LeftCol=1
 Elisions=
 Bookmarks=
-EditViewName=D:\Data\Jean_Luc_Derouineau\AESA\UButterworth.pas
+EditViewName=C:\Data\Jean_Luc_Derouineau\Data\AESA\UMainAESA_Opt.pas
+
+[ClosedView_QzpcRGF0YVxKZWFuX0x1Y19EZXJvdWluZWF1XERhdGFcQUVTQVxVQnV0dGVyd29ydGgucGFz]
+Module=C:\Data\Jean_Luc_Derouineau\Data\AESA\UButterworth.pas
+CursorX=28
+CursorY=374
+TopLine=1
+LeftCol=1
+Elisions={{32,76},{54,3},{''}}{{55,76},{88,3},{''}}{{89,77},{122,3},{''}}{{126,73},{135,3},{''}}{{138,50},{167,3},{''}}
+Bookmarks=
+EditViewName=C:\Data\Jean_Luc_Derouineau\Data\AESA\UButterworth.pas
+
+[ClosedView_RDpcRGF0YVxKZWFuX0x1Y19EZXJvdWluZWF1XEFFU0FcVUZGVC5wYXM=]
+Module=D:\Data\Jean_Luc_Derouineau\AESA\UFFT.pas
+CursorX=1
+CursorY=1
+TopLine=52
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=D:\Data\Jean_Luc_Derouineau\AESA\UFFT.pas
 

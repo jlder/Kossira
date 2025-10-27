@@ -89,6 +89,7 @@ begin
       Series4.Clear;
       Series5.Clear;
       Series6.Clear;
+      Series7.Clear;
       MainForm.Label1.Caption := '';
       MainForm.Label2.Caption := '';
       if ConfForm.RepereRadioGroup.ItemIndex = 0 then

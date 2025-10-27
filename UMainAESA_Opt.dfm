@@ -2,8 +2,8 @@ object MainForm: TMainForm
   Left = 0
   Top = 0
   Caption = 'Determination of load spectra'
-  ClientHeight = 803
-  ClientWidth = 1367
+  ClientHeight = 521
+  ClientWidth = 1210
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -16,14 +16,13 @@ object MainForm: TMainForm
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 1367
+    Width = 1210
     Height = 49
     Align = alTop
     TabOrder = 0
     VerticalAlignment = taAlignTop
-    ExplicitWidth = 1365
     DesignSize = (
-      1367
+      1210
       49)
     object Label1: TLabel
       Left = 896
@@ -40,14 +39,14 @@ object MainForm: TMainForm
       Caption = 'Waiting orders'
     end
     object RLabel: TLabel
-      Left = 984
+      Left = 1024
       Top = 28
       Width = 7
       Height = 15
       Caption = 'R'
     end
     object FlightTimeLabel: TLabel
-      Left = 984
+      Left = 1024
       Top = 7
       Width = 74
       Height = 15
@@ -119,17 +118,17 @@ object MainForm: TMainForm
       Height = 23
       EditLabel.Width = 50
       EditLabel.Height = 15
-      EditLabel.Margins.Left = 6
-      EditLabel.Margins.Top = 6
-      EditLabel.Margins.Right = 6
-      EditLabel.Margins.Bottom = 6
+      EditLabel.Margins.Left = 12
+      EditLabel.Margins.Top = 12
+      EditLabel.Margins.Right = 12
+      EditLabel.Margins.Bottom = 12
       EditLabel.Caption = 'FileName'
       TabOrder = 0
       Text = 'D:\Data\Jean_Luc_Derouineau\AESA\ASH25\WIT00060.TXT'
     end
     object RunButton: TButton
-      Left = 1323
-      Top = 10
+      Left = 1133
+      Top = 0
       Width = 35
       Height = 20
       Anchors = [akTop, akRight]
@@ -160,6 +159,8 @@ object MainForm: TMainForm
       Width = 50
       Height = 17
       Caption = 'FFT'
+      Checked = True
+      State = cbChecked
       TabOrder = 4
     end
     object SortCheckBox: TCheckBox
@@ -177,6 +178,10 @@ object MainForm: TMainForm
       Height = 23
       EditLabel.Width = 63
       EditLabel.Height = 15
+      EditLabel.Margins.Left = 6
+      EditLabel.Margins.Top = 6
+      EditLabel.Margins.Right = 6
+      EditLabel.Margins.Bottom = 6
       EditLabel.Caption = 'DX (Integer)'
       TabOrder = 6
       Text = '0'
@@ -189,24 +194,30 @@ object MainForm: TMainForm
       Caption = 'Taxi included'
       TabOrder = 7
     end
+    object TestButterButton: TButton
+      Left = 1112
+      Top = 18
+      Width = 75
+      Height = 25
+      Caption = 'TestButter'
+      TabOrder = 8
+    end
   end
   object PageControl1: TPageControl
     Left = 0
     Top = 49
-    Width = 1367
-    Height = 754
+    Width = 1210
+    Height = 472
     ActivePage = GraphTabSheet
     Align = alClient
     TabOrder = 1
-    ExplicitWidth = 1365
-    ExplicitHeight = 746
     object DataTabSheet: TTabSheet
       Caption = 'Data'
       object Memo2: TMemo
         Left = 274
         Top = 0
         Width = 144
-        Height = 716
+        Height = 442
         Align = alLeft
         Lines.Strings = (
           'Resampled Data'
@@ -218,7 +229,7 @@ object MainForm: TMainForm
         Left = 137
         Top = 0
         Width = 137
-        Height = 724
+        Height = 442
         Align = alLeft
         Lines.Strings = (
           'Sampled Data'
@@ -230,7 +241,7 @@ object MainForm: TMainForm
         Left = 0
         Top = 0
         Width = 137
-        Height = 724
+        Height = 442
         Align = alLeft
         Lines.Strings = (
           'Raw Data'
@@ -242,7 +253,7 @@ object MainForm: TMainForm
         Left = 418
         Top = 0
         Width = 167
-        Height = 724
+        Height = 442
         Align = alLeft
         Lines.Strings = (
           'Kossira')
@@ -255,8 +266,8 @@ object MainForm: TMainForm
       object Chart1: TChart
         Left = 0
         Top = 0
-        Width = 1359
-        Height = 724
+        Width = 1202
+        Height = 442
         Legend.Alignment = laBottom
         Legend.FontSeriesColor = True
         Legend.LegendStyle = lsSeries
@@ -272,7 +283,7 @@ object MainForm: TMainForm
         LeftAxis.Automatic = False
         LeftAxis.AutomaticMaximum = False
         LeftAxis.AutomaticMinimum = False
-        LeftAxis.Maximum = 1.000000000000000000
+        LeftAxis.Maximum = 30.000000000000000000
         RightAxis.Automatic = False
         RightAxis.AutomaticMaximum = False
         RightAxis.AutomaticMinimum = False
@@ -281,10 +292,11 @@ object MainForm: TMainForm
         View3D = False
         Align = alClient
         TabOrder = 0
-        ExplicitHeight = 719
+        OnMouseDown = Chart1MouseDown
         DefaultCanvas = ''
         ColorPaletteIndex = 13
         object Series3: TLineSeries
+          HoverElement = [heCurrent]
           Selected.Hover.Visible = False
           SeriesColor = clFuchsia
           Title = 'StdDevValueAzh'
@@ -298,6 +310,7 @@ object MainForm: TMainForm
           YValues.Order = loNone
         end
         object Series6: TLineSeries
+          HoverElement = [heCurrent]
           Selected.Hover.Visible = False
           SeriesColor = 16744448
           Title = 'StdDevValueAzd'
@@ -311,6 +324,7 @@ object MainForm: TMainForm
           YValues.Order = loNone
         end
         object Series1: TLineSeries
+          HoverElement = [heCurrent]
           SeriesColor = clGreen
           Title = 'StdDevValueAxh'
           Brush.BackColor = clDefault
@@ -327,6 +341,7 @@ object MainForm: TMainForm
           YValues.Order = loNone
         end
         object Series2: TPointSeries
+          HoverElement = [heCurrent]
           Marks.Callout.Length = 8
           SeriesColor = clRed
           Title = 'Ax (m/s'#178')'
@@ -342,7 +357,7 @@ object MainForm: TMainForm
           YValues.Order = loNone
         end
         object Series7: TLineSeries
-          Marks.FontSeriesColor = True
+          HoverElement = [heCurrent]
           SeriesColor = 33023
           Title = 'Pitch (rd)'
           Brush.BackColor = clDefault
@@ -358,6 +373,7 @@ object MainForm: TMainForm
           YValues.Order = loNone
         end
         object Series8: TLineSeries
+          HoverElement = [heCurrent]
           SeriesColor = 4259584
           Brush.BackColor = clDefault
           Pointer.InflateMargins = True
@@ -376,7 +392,7 @@ object MainForm: TMainForm
         Left = 0
         Top = 0
         Width = 1233
-        Height = 724
+        Height = 442
         Align = alLeft
         ColCount = 33
         DefaultColWidth = 36
@@ -387,7 +403,6 @@ object MainForm: TMainForm
         Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goFixedRowDefAlign]
         TabOrder = 0
         OnDrawCell = MarcovStringGrid1DrawCell
-        ExplicitHeight = 719
       end
     end
     object Marcov2TabSheet: TTabSheet
@@ -397,7 +412,7 @@ object MainForm: TMainForm
         Left = 0
         Top = 0
         Width = 1233
-        Height = 724
+        Height = 442
         Align = alLeft
         ColCount = 33
         Ctl3D = False
@@ -410,13 +425,12 @@ object MainForm: TMainForm
         ParentCtl3D = False
         TabOrder = 0
         OnDrawCell = MarcovStringGrid2DrawCell
-        ExplicitHeight = 719
       end
       object spectrumStringGrid: TStringGrid
-        Left = 1238
+        Left = 1081
         Top = 0
         Width = 121
-        Height = 724
+        Height = 442
         Align = alRight
         ColCount = 2
         DefaultColWidth = 63
@@ -425,7 +439,6 @@ object MainForm: TMainForm
         FixedColor = clMoneyGreen
         RowCount = 33
         TabOrder = 1
-        ExplicitHeight = 719
       end
     end
     object SpectraTabSheet: TTabSheet
@@ -434,8 +447,8 @@ object MainForm: TMainForm
       object Chart2: TChart
         Left = 0
         Top = 0
-        Width = 1359
-        Height = 724
+        Width = 1202
+        Height = 442
         Legend.Alignment = laBottom
         Legend.LegendStyle = lsSeries
         Title.Text.Strings = (
@@ -452,10 +465,10 @@ object MainForm: TMainForm
         View3D = False
         Align = alClient
         TabOrder = 0
-        ExplicitHeight = 719
         DefaultCanvas = ''
         ColorPaletteIndex = 13
         object Series4: TLineSeries
+          HoverElement = [heCurrent]
           Title = 'spectra KOSSIRA ICAS-82-2.8.2.pdf'
           Brush.BackColor = clDefault
           Pointer.InflateMargins = True
@@ -466,6 +479,7 @@ object MainForm: TMainForm
           YValues.Order = loNone
         end
         object Series5: TLineSeries
+          HoverElement = [heCurrent]
           SeriesColor = clRed
           Shadow.Visible = False
           Title = 'FileName'

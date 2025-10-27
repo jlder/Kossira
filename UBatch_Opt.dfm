@@ -20,7 +20,6 @@ object BatchForm: TBatchForm
     Align = alTop
     Caption = 'Panel1'
     TabOrder = 0
-    ExplicitWidth = 928
     object Label1: TLabel
       Left = 24
       Top = 19

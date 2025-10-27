@@ -19,7 +19,6 @@ object ConfForm: TConfForm
     Caption = 'Discretization'
     TabOrder = 0
     VerticalAlignment = taAlignTop
-    ExplicitWidth = 651
     object Label1: TLabel
       Left = 432
       Top = 24
@@ -105,7 +104,6 @@ object ConfForm: TConfForm
     Caption = 'Filtering'
     TabOrder = 1
     VerticalAlignment = taAlignTop
-    ExplicitWidth = 651
     object dtLabeledEdit: TLabeledEdit
       Left = 16
       Top = 33
@@ -130,7 +128,7 @@ object ConfForm: TConfForm
       ParentShowHint = False
       ShowHint = True
       TabOrder = 1
-      Text = '15'
+      Text = '4'
     end
     object OutlierLabeledEdit: TLabeledEdit
       Left = 200
@@ -241,14 +239,34 @@ object ConfForm: TConfForm
       Font.Height = 16
       Font.Name = 'Segoe UI'
       Font.Style = []
-      ItemIndex = 3
+      ItemIndex = 2
       Items.Strings = (
         'Order 0'
         'Order2'
-        'Order4'
-        'THOrder4')
+        'Order4')
       ParentFont = False
       TabOrder = 9
+    end
+    object FcRadioGroup: TRadioGroup
+      Left = 519
+      Top = 6
+      Width = 105
+      Height = 116
+      Caption = 'Freq coupure'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = 16
+      Font.Name = 'Segoe UI'
+      Font.Style = []
+      ItemIndex = 2
+      Items.Strings = (
+        '1 Hz'
+        '2 Hz'
+        '3 Hz'
+        '4 Hz'
+        '5 Hz')
+      ParentFont = False
+      TabOrder = 10
     end
   end
   object Panel3: TPanel
@@ -260,7 +278,6 @@ object ConfForm: TConfForm
     Caption = 'Takeoff and landing threshold'
     TabOrder = 2
     VerticalAlignment = taAlignTop
-    ExplicitWidth = 651
     object DecelerationLabeledEdit: TLabeledEdit
       Left = 225
       Top = 42
@@ -270,7 +287,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Deceleration (g)'
       TabOrder = 0
-      Text = '0.085'
+      Text = '8'
     end
     object PullUpLabeledEdit: TLabeledEdit
       Left = 24
@@ -281,7 +298,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Pullup (g)'
       TabOrder = 1
-      Text = '0.015'
+      Text = '10'
     end
     object PullUpDelayLabeledEdit: TLabeledEdit
       Left = 24
@@ -292,11 +309,11 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Pullup delay (s)'
       TabOrder = 2
-      Text = '10.0'
+      Text = '30'
     end
     object DecDelayLabeledEdit: TLabeledEdit
-      Left = 224
-      Top = 91
+      Left = 225
+      Top = 131
       Width = 41
       Height = 23
       EditLabel.Width = 78
@@ -314,7 +331,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Touch (g)'
       TabOrder = 4
-      Text = '0.035'
+      Text = '17.5'
     end
     object IntegratorThresholdLabeledEdit: TLabeledEdit
       Left = 128
@@ -325,7 +342,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'Integrator (g)'
       TabOrder = 5
-      Text = '5'
+      Text = '1.5'
     end
     object NewFlightDelayLabeledEdit: TLabeledEdit
       Left = 578
@@ -336,7 +353,7 @@ object ConfForm: TConfForm
       EditLabel.Height = 15
       EditLabel.Caption = 'InterFlight (s)'
       TabOrder = 6
-      Text = '800'
+      Text = '60'
     end
     object PullUpTimeOutLabeledEdit: TLabeledEdit
       Left = 24
@@ -351,7 +368,7 @@ object ConfForm: TConfForm
     end
     object IntegDelayLabeledEdit: TLabeledEdit
       Left = 128
-      Top = 90
+      Top = 131
       Width = 49
       Height = 23
       EditLabel.Width = 72
@@ -361,19 +378,19 @@ object ConfForm: TConfForm
       Text = '5'
     end
     object MinFlightDurationLabeledEdit: TLabeledEdit
-      Left = 328
-      Top = 90
+      Left = 320
+      Top = 42
       Width = 41
       Height = 23
       EditLabel.Width = 113
       EditLabel.Height = 15
       EditLabel.Caption = 'MinFlightDuration (s)'
       TabOrder = 9
-      Text = '500'
+      Text = '600'
     end
     object IntegTouchDelayLabeledEdit: TLabeledEdit
-      Left = 464
-      Top = 90
+      Left = 389
+      Top = 122
       Width = 49
       Height = 23
       EditLabel.Width = 72
@@ -384,7 +401,7 @@ object ConfForm: TConfForm
     end
     object TouchTimeOutLabeledEdit: TLabeledEdit
       Left = 464
-      Top = 131
+      Top = 123
       Width = 41
       Height = 23
       EditLabel.Width = 96
@@ -436,7 +453,6 @@ object ConfForm: TConfForm
     ShowFrame = False
     TabOrder = 3
     StyleName = 'Windows'
-    ExplicitLeft = 486
   end
   object Panel4: TPanel
     Left = 0
@@ -447,7 +463,6 @@ object ConfForm: TConfForm
     Caption = 'Fusion parameters'
     TabOrder = 4
     VerticalAlignment = taAlignTop
-    ExplicitWidth = 651
     object w1LabeledEdit: TLabeledEdit
       Left = 16
       Top = 42
