@@ -10,11 +10,11 @@ EditViewName=D:\Data\Jean_Luc_Derouineau\AESA\UBatch_Opt.pas
 
 [ClosedView_RDpcRGF0YVxKZWFuX0x1Y19EZXJvdWluZWF1XEFFU0FcVUJhdGNoX09wZXIucGFz]
 Module=D:\Data\Jean_Luc_Derouineau\AESA\UBatch_Oper.pas
-CursorX=86
-CursorY=32
-TopLine=40
+CursorX=1
+CursorY=184
+TopLine=33
 LeftCol=1
-Elisions=
+Elisions={{53,53},{182,3},{''}}{{184,62},{188,3},{''}}
 Bookmarks=
 EditViewName=D:\Data\Jean_Luc_Derouineau\AESA\UBatch_Oper.pas
 
@@ -31,10 +31,10 @@ EditViewName=D:\Data\Jean_Luc_Derouineau\AESA\UDecodeWIT_oer.pas
 [ClosedView_RDpcRGF0YVxKZWFuX0x1Y19EZXJvdWluZWF1XEFFU0FcVU1haW5BRVNBX09wZXIucGFz]
 Module=D:\Data\Jean_Luc_Derouineau\AESA\UMainAESA_Oper.pas
 CursorX=22
-CursorY=628
-TopLine=623
+CursorY=501
+TopLine=440
 LeftCol=1
-Elisions=
+Elisions={{183,57},{192,3},{''}}{{194,58},{201,3},{''}}{{334,62},{340,3},{''}}{{342,76},{360,3},{''}}{{362,94},{386,3},{''}}{{388,51},{391,3},{''}}{{393,84},{410,3},{''}}{{412,110},{434,3},{''}}{{436,53},{439,3},{''}}{{441,48},{444,3},{''}}{{446,120},{457,3},{''}}{{459,120},{470,3},{''}}{{472,48},{476,3},{''}}{{539,47},{548,3},{''}}{{550,49},{560,3},{''}}{{562,48},{565,3},{''}}{{567,55},{570,3},{''}}{{572,47},{575,3},{''}}{{577,46},{580,3},{''}}{{582,59},{585,3},{''}}{{587,121},{756,3},{''}}{{758,81},{808,3},{''}}{{810,52},{1442,3},{''}}{{833,58},{887,6},{''}}{{889,33},{946,6},{''}}{{1449,48},{1477,4},{''}}
 Bookmarks=
 EditViewName=D:\Data\Jean_Luc_Derouineau\AESA\UMainAESA_Oper.pas
 
@@ -50,11 +50,11 @@ EditViewName=D:\Data\Jean_Luc_Derouineau\AESA\USort_Oper.pas
 
 [ClosedView_RDpcRGF0YVxKZWFuX0x1Y19EZXJvdWluZWF1XEFFU0FcVUNvbmZBZXNhX09wZXIucGFz]
 Module=D:\Data\Jean_Luc_Derouineau\AESA\UConfAesa_Oper.pas
-CursorX=18
-CursorY=11
-TopLine=1
+CursorX=1
+CursorY=250
+TopLine=100
 LeftCol=1
-Elisions={{154,63},{224,3},{''}}
+Elisions={{77,20},{97,6},{''}}{{116,98},{119,3},{''}}{{121,58},{126,3},{''}}{{128,80},{131,3},{''}}{{133,120},{136,3},{''}}{{138,120},{153,3},{''}}{{155,63},{225,3},{''}}{{227,36},{233,3},{''}}{{251,65},{259,3},{''}}
 Bookmarks=
 EditViewName=D:\Data\Jean_Luc_Derouineau\AESA\UConfAesa_Oper.pas
 
@@ -257,4 +257,14 @@ LeftCol=1
 Elisions=
 Bookmarks=
 EditViewName=D:\Data\Jean_Luc_Derouineau\AESA\UOndelette.pas
+[ClosedView_YzpccHJvZ3JhbSBmaWxlcyAoeDg2KVxlbWJhcmNhZGVyb1xzdHVkaW9cMjMuMFxTT1VSQ0VcVkNM
+XFZjbC5Db250cm9scy5wYXM=]
+Module=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Controls.pas
+CursorX=1
+CursorY=10831
+TopLine=10800
+LeftCol=1
+Elisions=
+Bookmarks=
+EditViewName=c:\program files (x86)\embarcadero\studio\23.0\SOURCE\VCL\Vcl.Controls.pas
 

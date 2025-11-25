@@ -77,7 +77,7 @@ begin
       RunningLabel.Caption := 'Running';
       Sleep(50);
       Application.ProcessMessages;
-      ConfForm.ValidationButtonClick(Sender);
+      ConfForm.Close;
       // Cleaning memos and curves
       Memo1.Clear;
       Memo2.Clear;
@@ -109,14 +109,18 @@ begin
         else
           Exit;
       end;
+      DirectoryName := ExtractFilePath(FileName);
+      FileName := ExtractFileName(FileName);
+      FileNameLabeledEdit.Text := FileName;
+      RepertoireLabeledEdit.Text := DirectoryName;
       FileNameLabeledEdit.Text := FileName;
       ResFileName := Copy(FileName, 0, Length(FileName) - 4) + '.res';
       AssignFile(ResultFile, ResFileName);
       if Not FileExists(ResFileName) then
       begin
-        Rewrite(ResultFile);
-        DataBytes := TFile.ReadAllBytes(FileName);
-        FileProcessing(Sender);
+        //Rewrite(ResultFile);
+        //DataBytes := TFile.ReadAllBytes(FileName);
+        Data_Processing(Sender);
         for j := 0 to Taille_Spectrum do
           Cumul_Spectrum[j] := Cumul_Spectrum[j] + spectrum[j];
         Cumul_FlightTime := Cumul_FlightTime + FlightTime;
@@ -142,7 +146,7 @@ begin
         end;
         Cumul_FlightTime := Cumul_FlightTime + FlightTime;
       end;
-      CloseFile(ResultFile);
+      //CloseFile(ResultFile);
     end;
   end;
   AssignFile(ResultFile, Repertoire + '.res');

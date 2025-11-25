@@ -67,6 +67,7 @@ type
     FilterTypeRadioGroup: TRadioGroup;
     OndeletteOrderRadioGroup: TRadioGroup;
     procedure ValidationButtonClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
     { Déclarations privées }
   public
@@ -110,6 +111,7 @@ var // fusion parameters
 function CountCheckedItems(CheckListBox: TCheckListBox): Integer;
 
 implementation
+Uses UMainAESA_Oper;
 {$R *.dfm}
 constructor TAlphaBeta.Create(N: Word; dtTypical: Extended; const _Threshold: Extended = 0.0; const _filtMin: Extended = 0.0;
   const _filtMax: Extended = 0.0; const _primMin: Extended = 0.0; const _primMax: Extended = 0.0);
@@ -231,9 +233,7 @@ begin
     Result := False;
 end;
 
-
-procedure TConfForm.ValidationButtonClick(Sender: TObject);
-
+procedure TConfForm.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
 HighG:=StrToFloat(HighgLabeledEdit.Text);
 LowG:=StrToFloat(LowgLabeledEdit.Text);
@@ -246,6 +246,12 @@ Quantum:=Dynamique/ClassNumbers;
 QuantumRough:=Dynamique/UnderSample;
 QuantumLabel.Caption := Format('%5.3f',[Quantum*1000.0]);
 
+end;
+
+procedure TConfForm.ValidationButtonClick(Sender: TObject);
+
+begin
+MainForm.SaveIni;
 Close;
 end;
 function CountCheckedItems(CheckListBox: TCheckListBox): Integer;

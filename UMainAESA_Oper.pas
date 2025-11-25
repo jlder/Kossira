@@ -4,8 +4,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
-  System.Classes, Vcl.Graphics, System.IOUtils, // ← pour TFile et ReadAllBytes
-  inifiles,
+  System.Classes, Vcl.Graphics, System.IOUtils, System.Types, inifiles,// ← pour TFile et ReadAllBytes
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtDlgs, Vcl.StdCtrls, Vcl.Mask,
   Vcl.ExtCtrls, Vcl.ComCtrls, VCLTee.TeEngine, VCLTee.Series, VCLTee.TeeProcs,
   VCLTee.Chart, Vcl.Grids, Vcl.Menus, Math, UFFT, UButterworth, USort_Oper,
@@ -106,13 +105,12 @@ type
     procedure Chart1MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormCreate(Sender: TObject);
+    procedure SaveIni;
   private
     { Déclarations privées }
-    FCloseAction: TCloseAction;
     SaveEnd: Boolean;
   public
     LigneAGrossir: Integer;
-    procedure SaveIni;
     // Stocke le numéro de la ligne à renforcer  public
     { Déclarations publiques }
   end;
@@ -213,7 +211,7 @@ begin
   minmax := 16;
   minmax_1 := 16;
   // Configuration Recall
-  ConfForm.ValidationButtonClick(Sender);
+  ConfForm.Close;
   ProgressBar1.Position := 0;
   ProgressBar1.Max := 100;
   Memo1.Lines.BeginUpdate;
@@ -415,13 +413,12 @@ procedure TMainForm.Chart1MouseDown(Sender: TObject; Button: TMouseButton; Shift
 var
   Abscisse: Double;
   RectChart: TRect;
-  RelativeX, RelativeY: Integer;
+  RelativeX: Integer;
 begin
   RectChart := Chart1.ChartRect;
 
   // Calculer la position relative dans la zone de tracé
   RelativeX := X - RectChart.Left;
-  RelativeY := Y - RectChart.Top;
 
   if Button = mbRight then
   begin
@@ -492,6 +489,52 @@ begin
     else
       Exit;
 end;
+procedure TMainForm.SaveIni;
+var
+  appINI, PlaneINI: TIniFile;
+  PlaneName: String;
+begin
+  appINI := TIniFile.Create(ChangeFileExt(Application.ExeName, '.ini'));
+  try
+    appINI.WriteString('User', 'Last', 'gfm');
+    appINI.WriteDate('User', 'Date', Now);
+    with appINI, MainForm do
+    begin
+      WriteInteger('Placement', 'Top', Top);
+      WriteInteger('Placement', 'Left', Left);
+      WriteInteger('Placement', 'Width', Width);
+      WriteInteger('Placement', 'Height', Height);
+      WriteString('DirectoryName', 'DirectoryName', RepertoireLabeledEdit.Text);
+    end;
+    // NomplaneurEdit.Text:=NomPlaneur;
+  finally
+    appINI.Free;
+  end;
+  DirectoryName := ExcludeTrailingPathDelimiter(DirectoryName);
+  // Retourne le dernier segment du chemin (le répertoire parent)
+  PlaneName := ExtractFileName(DirectoryName);
+  PlaneName := DirectoryName + '\' + PlaneName;
+  PlaneINI := TIniFile.Create(ChangeFileExt(PlaneName, '.ini'));
+  try // if no last user return an empty string
+    with PlaneINI, MainForm do
+    begin
+      WriteString('FileName', 'FileName', FileNameLabeledEdit.Text);
+      PlaneINI.WriteString('Data', 'Tau', ConfForm.Enveloppe_TAuLabeledEdit.Text);
+      PlaneINI.WriteString('Data', 'PullUp', ConfForm.PullUpLabeledEdit.Text);
+      PlaneINI.WriteString('Data', 'PullUpDelay', ConfForm.PullUpDelayLabeledEdit.Text);
+      PlaneINI.WriteString('Data', 'IntegratorThreshold', ConfForm.IntegratorThresholdLabeledEdit.Text);
+      PlaneINI.WriteString('Data', 'Deceleration', ConfForm.DecelerationLabeledEdit.Text);
+      PlaneINI.WriteString('Data', 'MinFlightDuration', ConfForm.MinFlightDurationLabeledEdit.Text);
+      PlaneINI.WriteString('Data', 'Touching', ConfForm.TouchLabeledEdit.Text);
+      PlaneINI.WriteString('Data', 'StopLevel', ConfForm.StopLabeledEdit.Text);
+      PlaneINI.WriteString('Data', 'NewFlightDelay', ConfForm.NewFlightDelayLabeledEdit.Text);
+    end;
+  finally
+    PlaneINI.Free;
+    SaveEnd := True;
+  end;
+end;
+
 
 procedure TMainForm.SaveClick(Sender: TObject);
 begin
@@ -914,6 +957,7 @@ var // Butterworth variables
           K := 50;
         2:
           K := 1;
+          else K:=1;
       end;
       Series1.Title := 'inFlight';
       Series3.Title := 'An';
@@ -957,7 +1001,7 @@ var // Butterworth variables
 
 begin
   Initialisation(Sender);
-  Maxn := 0.0;
+  Maxn := 1.0;
   MeanAn := 1.0;
   Temps0 := 0.0;
   HPBuf2.x1 := 0;
@@ -1021,7 +1065,7 @@ begin
     end;
   end;
 
-  for i := 0 to High(Samples) do // Scanning throw all the data  for finding the max value of An
+(*   for i := 0 to High(Samples) do // Scanning throw all the data  for finding the max value of An
   begin
     if (Samples[i].Acc.Success) and (Samples[i].Time.Success_t) then
     // If accelerations are valid
@@ -1047,7 +1091,7 @@ begin
   if (Maxn > 0.5) and (Maxn < 1.5) then
     Maxn := 1.0;
   Label1.Caption := FloatToStr(Maxn);
-  (* ProgressBar1.Position := 20;
+  ProgressBar1.Position := 20;
     // Second step : Data sharing between Ground, Taxi and flight
     Initialisation(Sender);
     for i := 0 to High(Samples) do // Scanning throw all the data
@@ -1397,62 +1441,15 @@ begin
   // Writeln(ResultFile, Format('Durée de l''affichage: %.6f secondes', [ElapsedTime]));
 end;
 
-procedure TMainForm.SaveIni;
-var
-  appINI, PlaneINI: TIniFile;
-  PlaneName: String;
-begin
-  appINI := TIniFile.Create(ChangeFileExt(Application.ExeName, '.ini'));
-  try
-    appINI.WriteString('User', 'Last', 'gfm');
-    appINI.WriteDate('User', 'Date', Now);
-    with appINI, MainForm do
-    begin
-      WriteInteger('Placement', 'Top', Top);
-      WriteInteger('Placement', 'Left', Left);
-      WriteInteger('Placement', 'Width', Width);
-      WriteInteger('Placement', 'Height', Height);
-      WriteString('DirectoryName', 'DirectoryName', RepertoireLabeledEdit.Text);
-    end;
-    // NomplaneurEdit.Text:=NomPlaneur;
-  finally
-    appINI.Free;
-  end;
-  DirectoryName := ExcludeTrailingPathDelimiter(DirectoryName);
-  // Retourne le dernier segment du chemin (le répertoire parent)
-  PlaneName := ExtractFileName(DirectoryName);
-  PlaneName := DirectoryName + '\' + PlaneName;
-  PlaneINI := TIniFile.Create(ChangeFileExt(PlaneName, '.ini'));
-  try // if no last user return an empty string
-    with PlaneINI, MainForm do
-    begin
-      WriteString('FileName', 'FileName', FileNameLabeledEdit.Text);
-      PlaneINI.WriteString('Data', 'Tau', ConfForm.Enveloppe_TAuLabeledEdit.Text);
-      PlaneINI.WriteString('Data', 'PullUp', ConfForm.PullUpLabeledEdit.Text);
-      PlaneINI.WriteString('Data', 'PullUpDelay', ConfForm.PullUpDelayLabeledEdit.Text);
-      PlaneINI.WriteString('Data', 'IntegratorThreshold', ConfForm.IntegratorThresholdLabeledEdit.Text);
-      PlaneINI.WriteString('Data', 'Deceleration', ConfForm.DecelerationLabeledEdit.Text);
-      PlaneINI.WriteString('Data', 'MinFlightDuration', ConfForm.MinFlightDurationLabeledEdit.Text);
-      PlaneINI.WriteString('Data', 'Touching', ConfForm.TouchLabeledEdit.Text);
-      PlaneINI.WriteString('Data', 'StopLevel', ConfForm.StopLabeledEdit.Text);
-      PlaneINI.WriteString('Data', 'NewFlightDelay', ConfForm.NewFlightDelayLabeledEdit.Text);
-    end;
-  finally
-    PlaneINI.Free;
-    SaveEnd := True;
-  end;
-end;
-
 procedure TMainForm.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
   SaveIni;
-  // if SaveEnd then Close;
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 var
-  appINI, PlaneINI: TIniFile;
-  LastUser, PlaneName: string;
+  appINI: TIniFile;
+  LastUser: string;
   // LastDate: TDateTime;
 begin
   ConfForm := TConfForm.Create(Self);
@@ -1475,47 +1472,19 @@ begin
     if DirectoryName <> '' then
       RepertoireLabeledEdit.Text := DirectoryName;
   finally
-    PlaneINI.Free;
+    appINI.Free;
   end;
-  DirectoryName := ExcludeTrailingPathDelimiter(DirectoryName);
-  // Retourne le dernier segment du chemin (le répertoire parent)
-  PlaneName := ExtractFileName(DirectoryName);
-  PlaneName := DirectoryName + '\' + PlaneName;
-  PlaneINI := TIniFile.Create(ChangeFileExt(PlaneName, '.ini'));
-  try // if no last user return an empty string
-    FileName := PlaneINI.ReadString('FileName', 'FileName', FileName);
-    Tau := PlaneINI.ReadFloat('Data', 'Tau', Tau) / 1000.0;
-    PullUp := PlaneINI.ReadFloat('Data', 'PullUp', PullUp);
-    PullUpDelay := PlaneINI.ReadFloat('Data', 'PullUpDelay', PullUpDelay);
-    IntegratorThreshold := PlaneINI.ReadFloat('Data', 'IntegratorThreshold', IntegratorThreshold);
-    Deceleration := PlaneINI.ReadFloat('Data', 'Deceleration', Deceleration);
-    MinFlightDuration := PlaneINI.ReadFloat('Data', 'MinFlightDuration', MinFlightDuration);
-    Touching := PlaneINI.ReadFloat('Data', 'Touching', Touching);
-    StopLevel := PlaneINI.ReadFloat('Data', 'StopLevel', StopLevel);
-    NewFlightDelay := PlaneINI.ReadFloat('Data', 'NewFlightDelay', NewFlightDelay);
-    if FileName <> '' then
-      FileNameLabeledEdit.Text := FileName;
-    ConfForm.Enveloppe_TAuLabeledEdit.Text := FloatToStr(Tau * 1000.0);
-    ConfForm.PullUpLabeledEdit.Text := FloatToStr(PullUp);
-    ConfForm.PullUpDelayLabeledEdit.Text := FloatToStr(PullUpDelay);
-    ConfForm.IntegratorThresholdLabeledEdit.Text := FloatToStr(IntegratorThreshold);
-    ConfForm.DecelerationLabeledEdit.Text := FloatToStr(Deceleration);
-    ConfForm.MinFlightDurationLabeledEdit.Text := FloatToStr(MinFlightDuration);
-    ConfForm.TouchLabeledEdit.Text := FloatToStr(Touching);
-    ConfForm.StopLabeledEdit.Text := FloatToStr(StopLevel);
-    ConfForm.NewFlightDelayLabeledEdit.Text := FloatToStr(NewFlightDelay);
-  finally
-    PlaneINI.Free;
-    // ConfForm.Show;
-  end;
-end;
+ end;
 
 procedure TMainForm.Data_Processing(Sender: TObject);
+Var
+  PlaneINI: TIniFile;
+  PlaneName : String;
 begin
   // QueryPerformanceFrequency(Frequency);
   RunningLabel.Caption := 'Running';
   Application.ProcessMessages;
-  ConfForm.ValidationButtonClick(Sender);
+  ConfForm.Close;
   // Cleaning memos and curves
   Memo1.Clear;
   Memo2.Clear;
@@ -1541,7 +1510,7 @@ begin
   Chart1.Title.Caption := FileName;
   // QueryPerformanceCounter(StartCount);
   DataBytes := TFile.ReadAllBytes(DirectoryName + FileName);
-
+  FileNameLabeledEdit.text:=FileName;
   if SortCheckBox.Checked then
   begin
     FlightTimeLabel.Caption := 'Sorting';
@@ -1560,6 +1529,35 @@ begin
   // QueryPerformanceCounter(EndCount);
   // ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
   // Writeln(ResultFile, Format('Durée du chargement du fichier: %.6f secondes', [ElapsedTime]));
+  DirectoryName := ExcludeTrailingPathDelimiter(DirectoryName);
+  // Retourne le dernier segment du chemin (le répertoire parent)
+  PlaneName := ExtractFileName(DirectoryName);
+  PlaneName := DirectoryName + '\' + PlaneName;
+  PlaneINI := TIniFile.Create(ChangeFileExt(PlaneName, '.ini'));
+  try // if no last user return an empty string
+    FileName := PlaneINI.ReadString('FileName', 'FileName', FileName);
+    Tau := PlaneINI.ReadFloat('Data', 'Tau', Tau) / 1000.0;
+    PullUp := PlaneINI.ReadFloat('Data', 'PullUp', PullUp);
+    PullUpDelay := PlaneINI.ReadFloat('Data', 'PullUpDelay', PullUpDelay);
+    IntegratorThreshold := PlaneINI.ReadFloat('Data', 'IntegratorThreshold', IntegratorThreshold);
+    Deceleration := PlaneINI.ReadFloat('Data', 'Deceleration', Deceleration);
+    MinFlightDuration := PlaneINI.ReadFloat('Data', 'MinFlightDuration', MinFlightDuration);
+    Touching := PlaneINI.ReadFloat('Data', 'Touching', Touching);
+    StopLevel := PlaneINI.ReadFloat('Data', 'StopLevel', StopLevel);
+    NewFlightDelay := PlaneINI.ReadFloat('Data', 'NewFlightDelay', NewFlightDelay);
+    ConfForm.Enveloppe_TAuLabeledEdit.Text := FloatToStr(Tau * 1000.0);
+    ConfForm.PullUpLabeledEdit.Text := FloatToStr(PullUp);
+    ConfForm.PullUpDelayLabeledEdit.Text := FloatToStr(PullUpDelay);
+    ConfForm.IntegratorThresholdLabeledEdit.Text := FloatToStr(IntegratorThreshold);
+    ConfForm.DecelerationLabeledEdit.Text := FloatToStr(Deceleration);
+    ConfForm.MinFlightDurationLabeledEdit.Text := FloatToStr(MinFlightDuration);
+    ConfForm.TouchLabeledEdit.Text := FloatToStr(Touching);
+    ConfForm.StopLabeledEdit.Text := FloatToStr(StopLevel);
+    ConfForm.NewFlightDelayLabeledEdit.Text := FloatToStr(NewFlightDelay);
+  finally
+    PlaneINI.Free;
+    // ConfForm.Show;
+  end;
   FileProcessing(Sender);
   CloseFile(ResultFile);
   SaveIni;

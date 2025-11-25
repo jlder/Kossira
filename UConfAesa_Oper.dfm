@@ -6,6 +6,7 @@ object ConfForm: TConfForm
   ClientWidth = 653
   Color = clBtnFace
   ParentFont = True
+  OnClose = FormClose
   TextHeight = 15
   object Panel1: TPanel
     Left = 0
