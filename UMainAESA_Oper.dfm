@@ -12,6 +12,8 @@ object MainForm: TMainForm
   Font.Style = []
   Menu = MainMenu1
   Position = poDesigned
+  OnClose = FormClose
+  OnCreate = FormCreate
   TextHeight = 15
   object Panel1: TPanel
     Left = 0
@@ -21,12 +23,11 @@ object MainForm: TMainForm
     Align = alTop
     TabOrder = 0
     VerticalAlignment = taAlignTop
-    ExplicitWidth = 1210
     DesignSize = (
       1315
       49)
     object Label1: TLabel
-      Left = 896
+      Left = 912
       Top = 7
       Width = 38
       Height = 15
@@ -56,7 +57,7 @@ object MainForm: TMainForm
       Caption = 'FlightTime (h)'
     end
     object Label2: TLabel
-      Left = 896
+      Left = 912
       Top = 28
       Width = 38
       Height = 15
@@ -115,9 +116,9 @@ object MainForm: TMainForm
       ParentFont = False
     end
     object FileNameLabeledEdit: TLabeledEdit
-      Left = 4
+      Left = 268
       Top = 20
-      Width = 396
+      Width = 101
       Height = 23
       EditLabel.Width = 50
       EditLabel.Height = 15
@@ -127,7 +128,7 @@ object MainForm: TMainForm
       EditLabel.Margins.Bottom = 12
       EditLabel.Caption = 'FileName'
       TabOrder = 0
-      Text = 'D:\Data\Jean_Luc_Derouineau\AESA\ASH25\WIT00060.TXT'
+      Text = 'WIT00060.TXT'
     end
     object RunButton: TButton
       Left = 1238
@@ -138,7 +139,6 @@ object MainForm: TMainForm
       Caption = 'Run'
       TabOrder = 1
       OnClick = RunButtonClick
-      ExplicitLeft = 1133
     end
     object ProgressBar1: TProgressBar
       Left = 406
@@ -157,23 +157,13 @@ object MainForm: TMainForm
       State = cbChecked
       TabOrder = 3
     end
-    object FFTCheckBox: TCheckBox
-      Left = 478
-      Top = 3
-      Width = 50
-      Height = 17
-      Caption = 'FFT'
-      Checked = True
-      State = cbChecked
-      TabOrder = 4
-    end
     object SortCheckBox: TCheckBox
       Left = 534
       Top = 3
       Width = 59
       Height = 17
       Caption = 'Sort'
-      TabOrder = 5
+      TabOrder = 4
     end
     object DXLabeledEdit: TLabeledEdit
       Left = 832
@@ -187,8 +177,8 @@ object MainForm: TMainForm
       EditLabel.Margins.Right = 6
       EditLabel.Margins.Bottom = 6
       EditLabel.Caption = 'DX (Integer)'
-      TabOrder = 6
-      Text = '0'
+      TabOrder = 5
+      Text = '10'
     end
     object Taxi_IncludedCheckBox: TCheckBox
       Left = 599
@@ -196,7 +186,7 @@ object MainForm: TMainForm
       Width = 98
       Height = 17
       Caption = 'Taxi included'
-      TabOrder = 7
+      TabOrder = 6
     end
     object TestButterButton: TButton
       Left = 1236
@@ -205,8 +195,22 @@ object MainForm: TMainForm
       Height = 25
       Anchors = [akTop, akRight]
       Caption = 'TestButter'
+      TabOrder = 7
+    end
+    object RepertoireLabeledEdit: TLabeledEdit
+      Left = 4
+      Top = 20
+      Width = 253
+      Height = 23
+      EditLabel.Width = 80
+      EditLabel.Height = 15
+      EditLabel.Margins.Left = 12
+      EditLabel.Margins.Top = 12
+      EditLabel.Margins.Right = 12
+      EditLabel.Margins.Bottom = 12
+      EditLabel.Caption = 'DirectoryName'
       TabOrder = 8
-      ExplicitLeft = 1221
+      Text = 'D:\Data\Jean_Luc_Derouineau\AESA\ASH25\'
     end
   end
   object PageControl1: TPageControl
@@ -217,7 +221,6 @@ object MainForm: TMainForm
     ActivePage = GraphTabSheet
     Align = alClient
     TabOrder = 1
-    ExplicitWidth = 1210
     object DataTabSheet: TTabSheet
       Caption = 'Data'
       object Memo2: TMemo
@@ -300,7 +303,6 @@ object MainForm: TMainForm
         Align = alClient
         TabOrder = 0
         OnMouseDown = Chart1MouseDown
-        ExplicitWidth = 1202
         DefaultCanvas = ''
         ColorPaletteIndex = 13
         object Series3: TLineSeries
@@ -447,7 +449,6 @@ object MainForm: TMainForm
         FixedColor = clMoneyGreen
         RowCount = 33
         TabOrder = 1
-        ExplicitLeft = 1171
       end
     end
     object SpectraTabSheet: TTabSheet
@@ -474,7 +475,6 @@ object MainForm: TMainForm
         View3D = False
         Align = alClient
         TabOrder = 0
-        ExplicitWidth = 1292
         DefaultCanvas = ''
         ColorPaletteIndex = 13
         object Series4: TLineSeries

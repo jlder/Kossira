@@ -1,7 +1,7 @@
 object ConfForm: TConfForm
   Left = 0
   Top = 0
-  Caption = 'Configuration'
+  Caption = 'Configuration Oper'
   ClientHeight = 639
   ClientWidth = 653
   Color = clBtnFace
@@ -265,6 +265,17 @@ object ConfForm: TConfForm
       ParentFont = False
       TabOrder = 10
     end
+    object Enveloppe_TAuLabeledEdit: TLabeledEdit
+      Left = 16
+      Top = 90
+      Width = 73
+      Height = 23
+      EditLabel.Width = 77
+      EditLabel.Height = 15
+      EditLabel.Caption = 'Time cste (ms)'
+      TabOrder = 11
+      Text = '20'
+    end
   end
   object Panel3: TPanel
     Left = 0
@@ -275,93 +286,131 @@ object ConfForm: TConfForm
     Caption = 'Takeoff and landing threshold'
     TabOrder = 2
     VerticalAlignment = taAlignTop
-    object DecelerationLabeledEdit: TLabeledEdit
-      Left = 225
-      Top = 42
-      Width = 40
-      Height = 23
-      EditLabel.Width = 84
-      EditLabel.Height = 15
-      EditLabel.Caption = 'Deceleration (g)'
-      TabOrder = 0
-      Text = '8'
-    end
     object PullUpLabeledEdit: TLabeledEdit
-      Left = 24
-      Top = 42
+      Left = 3
+      Top = 34
       Width = 49
       Height = 23
       EditLabel.Width = 52
       EditLabel.Height = 15
       EditLabel.Caption = 'Pullup (g)'
-      TabOrder = 1
+      TabOrder = 0
       Text = '10'
     end
-    object PullUpDelayLabeledEdit: TLabeledEdit
-      Left = 24
-      Top = 90
-      Width = 73
-      Height = 23
-      EditLabel.Width = 81
-      EditLabel.Height = 15
-      EditLabel.Caption = 'Pullup delay (s)'
-      TabOrder = 2
-      Text = '30'
-    end
-    object TouchLabeledEdit: TLabeledEdit
-      Left = 464
-      Top = 42
-      Width = 49
-      Height = 23
-      EditLabel.Width = 50
-      EditLabel.Height = 15
-      EditLabel.Caption = 'Touch (g)'
-      TabOrder = 3
-      Text = '17.5'
-    end
     object IntegratorThresholdLabeledEdit: TLabeledEdit
-      Left = 128
-      Top = 42
+      Left = 115
+      Top = 34
       Width = 49
       Height = 23
       EditLabel.Width = 70
       EditLabel.Height = 15
       EditLabel.Caption = 'Integrator (g)'
-      TabOrder = 4
+      TabOrder = 1
       Text = '1.5'
     end
-    object NewFlightDelayLabeledEdit: TLabeledEdit
-      Left = 578
-      Top = 90
-      Width = 41
+    object DecelerationLabeledEdit: TLabeledEdit
+      Left = 212
+      Top = 34
+      Width = 40
       Height = 23
-      EditLabel.Width = 70
+      EditLabel.Width = 84
       EditLabel.Height = 15
-      EditLabel.Caption = 'InterFlight (s)'
-      TabOrder = 5
-      Text = '60'
+      EditLabel.Caption = 'Deceleration (g)'
+      TabOrder = 2
+      Text = '8'
     end
     object MinFlightDurationLabeledEdit: TLabeledEdit
-      Left = 320
-      Top = 42
+      Left = 307
+      Top = 34
       Width = 41
       Height = 23
       EditLabel.Width = 113
       EditLabel.Height = 15
       EditLabel.Caption = 'MinFlightDuration (s)'
-      TabOrder = 6
+      TabOrder = 3
       Text = '600'
     end
+    object TouchLabeledEdit: TLabeledEdit
+      Left = 451
+      Top = 34
+      Width = 49
+      Height = 23
+      EditLabel.Width = 50
+      EditLabel.Height = 15
+      EditLabel.Caption = 'Touch (g)'
+      TabOrder = 4
+      Text = '17.5'
+    end
     object StopLabeledEdit: TLabeledEdit
-      Left = 578
-      Top = 42
+      Left = 556
+      Top = 34
       Width = 40
       Height = 23
       EditLabel.Width = 69
       EditLabel.Height = 15
       EditLabel.Caption = 'StopLevel (g)'
-      TabOrder = 7
+      TabOrder = 5
       Text = '0.01'
+    end
+    object NewFlightDelayLabeledEdit: TLabeledEdit
+      Left = 555
+      Top = 82
+      Width = 41
+      Height = 23
+      EditLabel.Width = 70
+      EditLabel.Height = 15
+      EditLabel.Caption = 'InterFlight (s)'
+      TabOrder = 6
+      Text = '60'
+    end
+    object PullUpDelayLabeledEdit: TLabeledEdit
+      Left = 11
+      Top = 82
+      Width = 73
+      Height = 23
+      EditLabel.Width = 81
+      EditLabel.Height = 15
+      EditLabel.Caption = 'Pullup delay (s)'
+      TabOrder = 7
+      Text = '30'
+    end
+    object FilterTypeRadioGroup: TRadioGroup
+      Left = 224
+      Top = 126
+      Width = 105
+      Height = 116
+      Caption = 'Filtering type'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = 16
+      Font.Name = 'Segoe UI'
+      Font.Style = []
+      ItemIndex = 2
+      Items.Strings = (
+        'Butterworth'
+        'FFT'
+        'Ondelette')
+      ParentFont = False
+      TabOrder = 8
+    end
+    object OndeletteOrderRadioGroup: TRadioGroup
+      Left = 376
+      Top = 126
+      Width = 105
+      Height = 116
+      Caption = 'ButterWorth order'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = 16
+      Font.Name = 'Segoe UI'
+      Font.Style = []
+      ItemIndex = 1
+      Items.Strings = (
+        'Db2'
+        'Db4'
+        'Cf3')
+      ParentFont = False
+      TabOrder = 9
     end
   end
   object Panel4: TPanel
@@ -373,7 +422,6 @@ object ConfForm: TConfForm
     Caption = 'Fusion parameters'
     TabOrder = 3
     VerticalAlignment = taAlignTop
-    ExplicitTop = 369
     DesignSize = (
       653
       80)

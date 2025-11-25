@@ -1,10 +1,29 @@
-unit UConfAesa;
+unit UConfAesa_Oper;
 
 interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Mask, Vcl.ExtCtrls, Vcl.CheckLst;
+Const
+  // TailleMessage = 22; // taille d'un message complet (temps+Accel)
+  Taille_Spectrum = 31; // Quantification of loadfactor
+  WindowSize = 64; // Taille du buffer circulaire
+
+type
+  Table_Spectrum = Array [0 .. Taille_Spectrum] of Integer;
+  Table_Kossira = Array [0 .. Taille_Spectrum] of Extended;
+
+type
+  TExtendedArray = array of Extended;
+
+type
+  TCircularBuffer = record
+    Data: TExtendedArray;
+    Index: Integer;
+    Count: Integer;
+  end;
+
 
 type
   TConfForm = class(TForm)
@@ -27,23 +46,26 @@ type
     LabeledEdit3: TLabeledEdit;
     LabeledEdit4: TLabeledEdit;
     Panel3: TPanel;
-    DecelerationLabeledEdit: TLabeledEdit;
-    PullUpLabeledEdit: TLabeledEdit;
-    PullUpDelayLabeledEdit: TLabeledEdit;
     ButterWorthRadioGroup: TRadioGroup;
     Panel4: TPanel;
     w1LabeledEdit: TLabeledEdit;
     w2LabeledEdit: TLabeledEdit;
     w3LabeledEdit: TLabeledEdit;
     w4LabeledEdit: TLabeledEdit;
-    TouchLabeledEdit: TLabeledEdit;
-    IntegratorThresholdLabeledEdit: TLabeledEdit;
-    NewFlightDelayLabeledEdit: TLabeledEdit;
     ShowDataCheckBox: TCheckBox;
-    MinFlightDurationLabeledEdit: TLabeledEdit;
-    StopLabeledEdit: TLabeledEdit;
     FcRadioGroup: TRadioGroup;
     RepereRadioGroup: TRadioGroup;
+    PullUpLabeledEdit: TLabeledEdit;
+    IntegratorThresholdLabeledEdit: TLabeledEdit;
+    DecelerationLabeledEdit: TLabeledEdit;
+    MinFlightDurationLabeledEdit: TLabeledEdit;
+    TouchLabeledEdit: TLabeledEdit;
+    StopLabeledEdit: TLabeledEdit;
+    NewFlightDelayLabeledEdit: TLabeledEdit;
+    PullUpDelayLabeledEdit: TLabeledEdit;
+    Enveloppe_TAuLabeledEdit: TLabeledEdit;
+    FilterTypeRadioGroup: TRadioGroup;
+    OndeletteOrderRadioGroup: TRadioGroup;
     procedure ValidationButtonClick(Sender: TObject);
   private
     { Déclarations privées }
@@ -88,7 +110,6 @@ var // fusion parameters
 function CountCheckedItems(CheckListBox: TCheckListBox): Integer;
 
 implementation
-
 {$R *.dfm}
 constructor TAlphaBeta.Create(N: Word; dtTypical: Extended; const _Threshold: Extended = 0.0; const _filtMin: Extended = 0.0;
   const _filtMax: Extended = 0.0; const _primMin: Extended = 0.0; const _primMax: Extended = 0.0);
@@ -224,6 +245,7 @@ Dynamique:=HighG-LowG;
 Quantum:=Dynamique/ClassNumbers;
 QuantumRough:=Dynamique/UnderSample;
 QuantumLabel.Caption := Format('%5.3f',[Quantum*1000.0]);
+
 Close;
 end;
 function CountCheckedItems(CheckListBox: TCheckListBox): Integer;

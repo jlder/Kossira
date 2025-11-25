@@ -1,34 +1,20 @@
-﻿unit UMainAESA_Opt;
+﻿unit UMainAESA_Oper;
 
 interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, System.IOUtils, // ← pour TFile et ReadAllBytes
-
+  inifiles,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtDlgs, Vcl.StdCtrls, Vcl.Mask,
   Vcl.ExtCtrls, Vcl.ComCtrls, VCLTee.TeEngine, VCLTee.Series, VCLTee.TeeProcs,
-  VCLTee.Chart, Vcl.Grids, Vcl.Menus, Math, UFFT, UButterworth, USort,
-  UConfAesa, UDecodeWIT_opt, VCLTee.TeeGDIPlus;
+  VCLTee.Chart, Vcl.Grids, Vcl.Menus, Math, UFFT, UButterworth, USort_Oper,
+  UConfAesa_Oper, UDecodeWIT_oper, VCLTee.TeeGDIPlus, UOndelette;
 
 const
   APP_COPYRIGHT = '© 2025 GFM & JLD. Copyright. Tous droits réservés.';
   APP_VERSION = 'Version 1.0.0.0';
   Gravity = 9.807;
-  // TailleMessage = 22; // taille d'un message complet (temps+Accel)
-  Taille_Spectrum = 31; // Quantification of loadfactor
-  WindowSize = 64; // Taille du buffer circulaire
-
-type
-  Table_Spectrum = Array [0 .. Taille_Spectrum] of Integer;
-  Table_Kossira = Array [0 .. Taille_Spectrum] of Extended;
-
-type
-  TCircularBuffer = record
-    Data: array [0 .. WindowSize - 1] of Extended;
-    Index: Integer;
-    Count: Integer;
-  end;
 
 type
   TFlights = array of TFlightInfo;
@@ -83,7 +69,6 @@ type
     RLabel: TLabel;
     FlightTimeLabel: TLabel;
     Label2: TLabel;
-    FFTCheckBox: TCheckBox;
     SortCheckBox: TCheckBox;
     Series3: TLineSeries;
     Series6: TLineSeries;
@@ -98,6 +83,7 @@ type
     GyroLabel: TLabel;
     AttitudeLabel: TLabel;
     TestButterButton: TButton;
+    RepertoireLabeledEdit: TLabeledEdit;
     Procedure Initialisation(Sender: TObject);
     procedure RunButtonClick(Sender: TObject);
     procedure ConfButtonClick(Sender: TObject);
@@ -118,9 +104,15 @@ type
     Procedure Data_Processing(Sender: TObject);
     procedure InitBuffer(var Buf: TCircularBuffer);
     procedure Chart1MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure FormCreate(Sender: TObject);
   private
     { Déclarations privées }
+    FCloseAction: TCloseAction;
+    SaveEnd: Boolean;
+  public
     LigneAGrossir: Integer;
+    procedure SaveIni;
     // Stocke le numéro de la ligne à renforcer  public
     { Déclarations publiques }
   end;
@@ -141,7 +133,7 @@ Const
 
 var
   MainForm: TMainForm;
-  FileName, ResFileName: String;
+  DirectoryName, FileName, ResFileName: String;
   FlightTime: Extended;
   Classes, Occurs: Extended;
   Spectrum: Table_Spectrum;
@@ -153,7 +145,7 @@ var
   PullUp, PullUpDelay, PullUpTimeOut: Extended;
   IntegratorThreshold, IntegDelay: Extended;
   Deceleration, DecelerationDelay, Touching, StopLevel, IntegTouchDelay, TouchTimeOut, MinFlightDuration, NewFlightDelay: Extended;
-  phase: (Idle, Taxi, TaxiConfirm, Air, Taxi2, Landing);
+  phase: (Idle, Taxi, TaxiConfirm, Air_presumed, Air, Taxi2, Landing);
   Velocity: Extended;
   Offset: Extended; // Offset for avoiding velocity error
   EoFTime: Int64;
@@ -167,6 +159,7 @@ var
   ax_AB, ay_AB, az_AB: TAlphaBeta;
   NAccel, NAccelx: Integer;
   Fc: Integer;
+  Tau: Extended; // Constante de temps pour le filtrage de l'enveloppe
 
   Compteur_FFT: Integer;
   R: Extended;
@@ -177,6 +170,9 @@ var // Time profiler variables
   StartCount, EndCount, Frequency: Int64;
   ElapsedTime: Double;
 
+var
+  Approx2, Detail2, Detail1: TExtendedArray;
+
 Function R_Calculation(FlightTime: Extended; Spectrum: Table_Spectrum): Extended;
 
 implementation
@@ -184,16 +180,26 @@ implementation
 {$R *.dfm}
 
 // {$R InfoVersion.res}
-uses UDoc, UAPropos, UBatch_Opt;
+uses UDoc, UAPropos, UBatch_Oper;
 
 procedure TMainForm.InitBuffer(var Buf: TCircularBuffer);
 var
   i: Integer;
 begin
+  SetLength(Buf.Data, WindowSize);
   for i := 0 to WindowSize - 1 do
     Buf.Data[i] := 0;
   Buf.Index := 0;
   Buf.Count := 0;
+end;
+
+function SumOfSquares(const Data: TExtendedArray): Double;
+var
+  i: Integer;
+begin
+  Result := 0;
+  for i := 0 to Length(Data) - 1 do
+    Result := Result + Data[i] * Data[i];
 end;
 
 Procedure TMainForm.Initialisation(Sender: TObject);
@@ -290,8 +296,8 @@ begin
   Fc := ConfForm.FcRadioGroup.ItemIndex + 1;
   flightIdx := 0;
   taxiIdx := 0;
-  setlength(Flights, 1);
-  setlength(Taxis, 1);
+  SetLength(Flights, 1);
+  SetLength(Taxis, 1);
   Flights[0].TaxiStart := 0;
   Flights[0].TakeOff := 0;
   Flights[0].TouchDown := 0;
@@ -301,6 +307,8 @@ begin
   Flights[0].idxTouchDown := 0;
   Flights[0].idxTaxiStop := 0;
 
+  SaveEnd := False;
+  Tau := StrToFloat(ConfForm.Enveloppe_TAuLabeledEdit.Text) / 1000.0;
   PullUp := StrToFloat(ConfForm.PullUpLabeledEdit.Text);
   PullUpDelay := StrToFloat(ConfForm.PullUpDelayLabeledEdit.Text);
   IntegratorThreshold := StrToFloat(ConfForm.IntegratorThresholdLabeledEdit.Text);
@@ -309,14 +317,14 @@ begin
   Touching := StrToFloat(ConfForm.TouchLabeledEdit.Text);
   StopLevel := StrToFloat(ConfForm.StopLabeledEdit.Text);
   NewFlightDelay := StrToFloat(ConfForm.NewFlightDelayLabeledEdit.Text);
-  QueryPerformanceCounter(EndCount);
-  ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
-  Writeln(ResultFile, Format('Durée de l''initialisation: %.6f secondes', [ElapsedTime]));
-  QueryPerformanceCounter(StartCount);
+  // QueryPerformanceCounter(EndCount);
+  // ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
+  // Writeln(ResultFile, Format('Durée de l''initialisation: %.6f secondes', [ElapsedTime]));
+  // QueryPerformanceCounter(StartCount);
   phase := Idle;
   Velocity := 0.0;
   FlightTimeLabel.Caption := '';
-  Label1.Caption := '';
+  // Label1.Caption := '';
   Label2.Caption := '';
   RLabel.Caption := '';
   TimeLabel.Visible := False;
@@ -372,7 +380,7 @@ begin
   for i := 1 to N div 2 do
   begin
     // MainForm.Series3.Addxy(20 * i / N, amplitude[i]);
-    if (i < 4 * N div 20) then
+    if (i < 2 * N div 20) then
       amax1 := amax1 + amplitude[i];
     if (i > 4 * N div 20) then
       amax2 := amax2 + amplitude[i];
@@ -405,7 +413,6 @@ end;
 
 procedure TMainForm.Chart1MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
-  ChartPoint: TPoint;
   Abscisse: Double;
   RectChart: TRect;
   RelativeX, RelativeY: Integer;
@@ -473,13 +480,17 @@ end;
 
 procedure TMainForm.OpenClick(Sender: TObject);
 begin
-  if FileOpenTextFileDialog.Execute then
-  begin
-    FileName := FileOpenTextFileDialog.FileName;
-    FileNameLabeledEdit.Text := FileName;
-  end
-  else
-    Exit;
+  if Not FileExists(DirectoryName + FileName) then
+    if FileOpenTextFileDialog.Execute then
+    begin
+      FileName := FileOpenTextFileDialog.FileName;
+      DirectoryName := ExtractFilePath(FileName);
+      FileName := ExtractFileName(FileName);
+      FileNameLabeledEdit.Text := FileName;
+      RepertoireLabeledEdit.Text := DirectoryName;
+    end
+    else
+      Exit;
 end;
 
 procedure TMainForm.SaveClick(Sender: TObject);
@@ -553,17 +564,17 @@ begin
             currTaxi.TaxiStart := Time64;
             currTaxi.idxTaxiStart := Index;
             Taxis[taxiIdx] := currTaxi;
-            Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi');
+            // Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi');
           end;
         end;
 
       end;
     Taxi:
       begin
-        if ((HF > PullUp)) and (Enveloppe > IntegratorThreshold) then
+        if ((HF > Deceleration)) and (Enveloppe > IntegratorThreshold) then
         begin
           phase := TaxiConfirm;
-          Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi confirmed');
+          // Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi confirmed');
         end
         else if ((HF < Deceleration) and ((Time64 - currFlight.TaxiStart) / 1000.0 > PullUpDelay)) then
         begin
@@ -574,8 +585,8 @@ begin
           currTaxi.idxTaxiStop := Index;
           Taxis[taxiIdx] := currTaxi;
           taxiIdx := taxiIdx + 1;
-          setlength(Taxis, taxiIdx + 1);
-          Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi stop');
+          SetLength(Taxis, taxiIdx + 1);
+          // Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi stop');
         end;
 
       end;
@@ -584,37 +595,59 @@ begin
       if (HF < PullUp) then
       begin
         If currFlight.TakeOff = 0.0 then
-          Begin
-            currFlight.TakeOff := Time64;
-            currFlight.idxTakeOff := Index;
-            Flights[flightIdx] := currFlight;
-          End;
+        Begin
+          currFlight.TakeOff := Time64;
+          currFlight.idxTakeOff := Index;
+          Flights[flightIdx] := currFlight;
+        End;
         if (Enveloppe > IntegratorThreshold) then
         begin
-          if ((Time64 - currFlight.TakeOff) / 1000.0 > MinFlightDuration) then
+          if ((Time64 - currFlight.TakeOff) / 1000.0 < PullUpDelay) then
           begin
-            phase := Air;
-            Writeln(ResultFile, (currFlight.TakeOff / 1000.0 ):8:3, 'TakeOff');
+            phase := Air_presumed;
+            // Writeln(ResultFile, (currFlight.TakeOff / 1000.0):8:3, 'Air presumed');
           end;
         end
         else
         begin
           phase := Idle;
           currFlight.TaxiStart := 0;
-            currFlight.TakeOff := 0;
-            currFlight.idxTakeOff := 0;
+          currFlight.TakeOff := 0;
+          currFlight.idxTakeOff := 0;
           Flights[flightIdx] := currFlight;
           currTaxi.TaxiStop := Time64;
           currTaxi.idxTaxiStop := Index;
           Taxis[taxiIdx] := currTaxi;
           taxiIdx := taxiIdx + 1;
-          setlength(Taxis, taxiIdx + 1);
-          Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi confirmed stop');
+          SetLength(Taxis, taxiIdx + 1);
+          // Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi confirmed stop');
         end;
       end;
 
+    Air_presumed:
+      if ((Time64 - currFlight.TakeOff) / 1000.0 > MinFlightDuration) then
+        if (Enveloppe > StopLevel) then
+        begin
+          phase := Air;
+          // Writeln(ResultFile, (currFlight.TakeOff / 1000.0):8:3, 'TakeOff');
+        end
+        else
+        begin
+          phase := Idle;
+          currFlight.TaxiStart := 0;
+          currFlight.TakeOff := 0;
+          currFlight.idxTakeOff := 0;
+          Flights[flightIdx] := currFlight;
+          currTaxi.TaxiStop := Time64;
+          currTaxi.idxTaxiStop := Index;
+          Taxis[taxiIdx] := currTaxi;
+          taxiIdx := taxiIdx + 1;
+          SetLength(Taxis, taxiIdx + 1);
+          // Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi confirmed stop');
+        end;
+
     Air:
-      if (HF > Touching) then
+      if (HF > Touching) and ((Time64 - currFlight.TakeOff) / 1000.0 > MinFlightDuration) then
       begin
         currFlight.TouchDown := Time64;
         currFlight.idxTouchDown := Index;
@@ -623,7 +656,7 @@ begin
         currTaxi.idxTouchDown := Index;
         Taxis[taxiIdx] := currTaxi;
         phase := Taxi2;
-        Writeln(ResultFile, Time64 / 1000.0:8:3, ',', 'Taxi2');
+        // Writeln(ResultFile, Time64 / 1000.0:8:3, ',', 'Taxi2');
       end;
 
     Taxi2:
@@ -642,7 +675,7 @@ begin
         currTaxi.TAxiTime := currTaxi.TouchDown - currTaxi.TaxiStart;
         currTaxi.idxTaxiStop := Index;
         Taxis[taxiIdx] := currTaxi;
-        Writeln(ResultFile, Time64 / 1000.0:8:3, ',', 'Landing');
+        // Writeln(ResultFile, Time64 / 1000.0:8:3, ',', 'Landing');
       end;
     Landing:
       // Attente d'un nouveau départ
@@ -650,7 +683,7 @@ begin
       begin
         phase := Idle;
         flightIdx := flightIdx + 1;
-        setlength(Flights, flightIdx + 1);
+        SetLength(Flights, flightIdx + 1);
         // Repart en Idle pour vol suivant s’il y en a
         currFlight.TaxiStart := 0;
         currFlight.TakeOff := 0;
@@ -666,7 +699,7 @@ begin
         currTaxi.idxTaxiStop := Index;
         Taxis[taxiIdx] := currTaxi;
         taxiIdx := taxiIdx + 1;
-        setlength(Taxis, taxiIdx + 1);
+        SetLength(Taxis, taxiIdx + 1);
         currTaxi.TaxiStart := 0;
         currTaxi.TouchDown := 0;
         currTaxi.TaxiStop := 0;
@@ -874,16 +907,19 @@ var // Butterworth variables
   begin
     if GraphCheckBox.Checked then
     begin
-      if FFTCheckBox.Checked then
-        K := 50
-      else
-        K := 1;
-
+      Case ConfForm.FilterTypeRadioGroup.ItemIndex of
+        0:
+          K := 1;
+        1:
+          K := 50;
+        2:
+          K := 1;
+      end;
       Series1.Title := 'inFlight';
       Series3.Title := 'An';
       Series6.Title := 'StdDevValueAzh';
       Series7.Title := 'Enveloppe';
-      Series3.Addxy(Temps, An, '', clpurple); // purple curve
+      Series3.Addxy(Temps, An / 10.0, '', clpurple); // purple curve
       Series6.Addxy(Temps, Y); // black curve
       Series7.Addxy(Temps, X); // black curve
       case phase of
@@ -899,17 +935,21 @@ var // Butterworth variables
           begin
             Series1.Addxy(Temps, 0.2 * K);
           end;
-        Air:
+        Air_presumed:
           begin
             Series1.Addxy(Temps, 0.3 * K);
           end;
-        Taxi2:
+        Air:
           begin
             Series1.Addxy(Temps, 0.4 * K);
           end;
-        Landing:
+        Taxi2:
           begin
             Series1.Addxy(Temps, 0.5 * K);
+          end;
+        Landing:
+          begin
+            Series1.Addxy(Temps, 0.6 * K);
           end;
       end;
     end;
@@ -942,19 +982,18 @@ begin
   HPBuf4x.y4 := 0;
   Enveloppe := 0.0;
   An_Integ := 0.0;
-  An_Err := 0.0;
   Enveloppe_1 := 0.0;
   // QueryPerformanceCounter(StartCount);
   // Data processing
   // Loading RAM memory with all data from File in Sentences record
   ParseData(DataBytes);
-  if length(Samples) = 0 then
+  if Length(Samples) = 0 then
     Exit;
 
   ProgressBar1.Position := 10;
   // First step : Max value
   // Looking for max value of StdDevValueAzh
-  for i := 0 to 399 do // Scanning throw all the data
+  for i := 0 to 399 do // Scanning throw first 20 s to zeroing aceleration module
   begin
     if (Samples[i].Acc.Success) and (Samples[i].Time.Success_t) then
     // If accelerations are valid
@@ -982,7 +1021,7 @@ begin
     end;
   end;
 
-  for i := 0 to High(Samples) do // Scanning throw all the data
+  for i := 0 to High(Samples) do // Scanning throw all the data  for finding the max value of An
   begin
     if (Samples[i].Acc.Success) and (Samples[i].Time.Success_t) then
     // If accelerations are valid
@@ -990,7 +1029,7 @@ begin
       Ax := Samples[i].Acc.Ax;
       Ay := Samples[i].Acc.Ay;
       nff := Samples[i].Acc.az; // Taking account of the frame NED or not
-      An := Sqrt(Ax * Ax + Ay * Ay + nff * nff) - 1.0;
+      An := (1 - Tau) * An + Tau * (Sqrt(Ax * Ax + Ay * Ay + nff * nff) - 1.0 - MeanAn);
       if An > Maxn then
         Maxn := An;
     end
@@ -1005,6 +1044,9 @@ begin
     MainForm.Chart1.BottomAxis.Maximum := EoFTime / 1000.0;
     MainForm.Chart1.BottomAxis.Minimum := Temps0;
   end;
+  if (Maxn > 0.5) and (Maxn < 1.5) then
+    Maxn := 1.0;
+  Label1.Caption := FloatToStr(Maxn);
   (* ProgressBar1.Position := 20;
     // Second step : Data sharing between Ground, Taxi and flight
     Initialisation(Sender);
@@ -1126,7 +1168,7 @@ begin
       Ax := Samples[i].Acc.Ax;
       Ay := Samples[i].Acc.Ay;
       nff := Samples[i].Acc.az; // Taking account of the frame NED or not
-      An := (Sqrt(Ax * Ax + Ay * Ay + nff * nff) - 1.0 - MeanAn);
+      An := (Sqrt(Ax * Ax + Ay * Ay + nff * nff) - 1.0 - MeanAn) / Maxn;
       // Pitch := Samples[i].Att.Pitch;
       // ax_abs := Ax * cos(Pitch) + (nff - 1) * Gravity * sin(Pitch);
       // ax_AB.ABupdate(deltaT, ax_abs);
@@ -1136,50 +1178,83 @@ begin
       // Velocity := Velocity + (ax_AB.ABfilt  - Offset  ) * deltaT;
       az_AB.ABupdate(deltaT, An); // use alphabeta filter to get the variation
       ax_AB.ABupdate(deltaT, Ax); // use alphabeta filter to get the variation
-      AddSample(BufAzd, An / Maxn);
+      AddSample(BufAzd, An);
       var
         X, Y: Extended;
-      if FFTCheckBox.Checked then // affichage toutes les 16*50=0.8secondes
-      begin
-        if (i mod 32 = 0) then
-        begin
-          ComputeFFT(Temps, BufAzd, X, Y);
-          If (X > 1E-10) and (X < 1E10) then
-            Enveloppe := (1 - 0.02) * Enveloppe + 0.02 * X;
-          DetectPhases(i, Samples[i].Time.TimeMs, Enveloppe, Y, Flights, Taxis);
-          Graphix(Enveloppe, Y);
-        end;
-      end
-      else
-      begin;
-        // and add this variation in the circular buffer for standard deviation computing
-        AddSample(BufAxd, ax_AB.ABfilt);
-        StdDevValueAxd := ComputeStdDev(Temps, BufAxd);
-        StdDevValueAzd := ComputeStdDev(Temps, BufAzd);
-        // Butterworth high pass
-        case ConfForm.ButterWorthRadioGroup.ItemIndex of
-          // acceleration high pass filtering in accordance with the butterworth order 2 or 4
-          0:
-            nfh := An; // No flitrage
-          1:
-            nfh := Abs(HighPass_Filter2(HPBuf2, An)); // Butterworth order 2
-          2:
-            nfh := Abs(HighPass_Filter4(Fc, HPBuf4, An)); // Butterworth order 4
-        end;
-        AddSample(BufAzh, nfh);
-        // add the absolute value of the butterworth output
-        StdDevValueAzh := ComputeStdDev(Temps, BufAzh);
+      case ConfForm.FilterTypeRadioGroup.ItemIndex of // affichage toutes les 16*50=0.8secondes
+        0:
+          begin;
+            // and add this variation in the circular buffer for standard deviation computing
+            AddSample(BufAxd, ax_AB.ABfilt);
+            StdDevValueAxd := ComputeStdDev(Temps, BufAxd);
+            StdDevValueAzd := ComputeStdDev(Temps, BufAzd);
+            // Butterworth high pass
+            case ConfForm.ButterWorthRadioGroup.ItemIndex of
+              // acceleration high pass filtering in accordance with the butterworth order 2 or 4
+              0:
+                nfh := An; // No flitrage
+              1:
+                nfh := Abs(HighPass_Filter2(HPBuf2, An)); // Butterworth order 2
+              2:
+                nfh := Abs(HighPass_Filter4(Fc, HPBuf4, An)); // Butterworth order 4
+            end;
+            AddSample(BufAzh, nfh);
+            // add the absolute value of the butterworth output
+            StdDevValueAzh := ComputeStdDev(Temps, BufAzh);
 
-        axh := Abs(HighPass_Filter4(Fc, HPBuf4x, Ax)); // Butterworth order 4
-        AddSample(BufAxh, An);
-        // add the absolute value of the butterworth output
-        StdDevValueAxh := ComputeStdDev(Temps, BufAxh);
-        // ax_AB.ABupdate(deltaT, nfh);
+            axh := Abs(HighPass_Filter4(Fc, HPBuf4x, Ax)); // Butterworth order 4
+            AddSample(BufAxh, An);
+            // add the absolute value of the butterworth output
+            StdDevValueAxh := ComputeStdDev(Temps, BufAxh);
+            // ax_AB.ABupdate(deltaT, nfh);
 
-        // inFlight_Determination
-        DetectPhases(i, Samples[i].Time.TimeMs, Enveloppe, StdDevValueAzh, Flights, Taxis);
-        Graphix(Enveloppe, StdDevValueAzh);
+            // inFlight_Determination
+            DetectPhases(i, Samples[i].Time.TimeMs, Enveloppe, StdDevValueAzh, Flights, Taxis);
+            Graphix(Enveloppe, StdDevValueAzh);
+          end;
+        1:
+          if (i mod 32 = 0) then
+          begin
+            ComputeFFT(Temps, BufAzd, X, Y); // X: BF power, Y: HF power
+            If (X > 1E-10) and (X < 1E10) then
+              Enveloppe := (1 - Tau) * Enveloppe + Tau * X;
+            DetectPhases(i, Samples[i].Time.TimeMs, Enveloppe, Y, Flights, Taxis);
+            Graphix(Enveloppe, Y);
+          end;
+        2:
+          begin
+            if (Temps > 68340) and (Temps < 68440) then
+              Write(ResultFile, Temps:8:3, ',', An / Maxn:8:5, ',');
+            begin
+              if (i mod 16 = 0) then
+              begin
+                case ConfForm.OndeletteOrderRadioGroup.ItemIndex of // Calcul ondelettes 2 niveaux Db4
+                  0:
+                    DWT_2Levels(BufAzd.Data, Approx2, Detail2, Detail1);
+                  1:
+                    DWT_4Levels(BufAzd.Data, Approx2, Detail2, Detail1);
+                  2:
+                    DWT_3Levels(BufAzd.Data, Approx2, Detail2, Detail1);
+                end;
+                X := Sqrt(SumOfSquares(Detail2) / Length(Detail2));
+                Y := Sqrt(SumOfSquares(Detail1) / Length(Detail1));
+                if (Temps > 68340) and (Temps < 68440) then
+                  Writeln(ResultFile, X:8:5, ',', Y:8:5);
+
+                // Affichage simple de la moyenne d’énergie des coefficients de détail
+                // Label1.Caption := Format('Énergie Detail Niveau 1 (3 Hz approx.) : %6.4f', [Y]);
+                // Label2.Caption := Format('Énergie Detail Niveau 2 (1 Hz approx.) : %6.4f', [X]);
+                If (X > 1E-10) and (X < 1E10) then
+                  Enveloppe := (1 - Tau) * Enveloppe + Tau * X;
+                DetectPhases(i, Samples[i].Time.TimeMs, Enveloppe, Y, Flights, Taxis);
+                Graphix(Enveloppe, Y);
+              end
+              else
+                Writeln(ResultFile);
+            end;
+          end;
       end;
+
     end
     else
     begin
@@ -1231,7 +1306,7 @@ begin
     Application.MessageBox('No acceleration are valid or error in flight phase detection', 'ATTENTION', IDOK);
     // Halt(0);
   end;
-  Label1.Caption := Format('nq_avg = %2d', [nq_avg]);
+  // Label1.Caption := Format('nq_avg = %2d', [nq_avg]);
   LigneAGrossir := nq_avg;
   // Mean computation completed
   ProgressBar1.Position := 60;
@@ -1271,9 +1346,9 @@ begin
 
     // Fourth step : Markov matrixes elaboration
     // QueryPerformanceCounter(StartCount);
-    Writeln(ResultFile, 'StartTime (s) :', Flights[0].TaxiStart / 3600000:10:3, ' EndTime (h) :', Flights[High(Flights)].TaxiStop / 3600000:10:3,
-      ' FlightTime (h) :', FlightTime:10:3);
-    Writeln(ResultFile, ' Classes (g)', #9, 'occurs');
+    // Writeln(ResultFile, 'StartTime (s) :', Flights[0].TaxiStart / 3600000:10:3, ' EndTime (h) :', Flights[High(Flights)].TaxiStop / 3600000:10:3,
+    // ' FlightTime (h) :', FlightTime:10:3);
+    // Writeln(ResultFile, ' Classes (g)', #9, 'occurs');
     Matrixes_elaboration; // Markov matrixes computation
     // Kossira'curve and Memo1 title
     Series5.Title := FileName;
@@ -1289,7 +1364,7 @@ begin
       Occurs := Spectrum[j] * (6000.0) / (FlightTime);
       // Normalisation for 6000h to be compared with the Kossira reference
       Classes := ((j + 0.5) * QuantumRough + LowG);
-      Writeln(ResultFile, Classes:8:3, #9, Spectrum[j]:12);
+      // Writeln(ResultFile, Classes:8:3, #9, Spectrum[j]:12);
       if Spectrum[j] <> 0 then
       begin
         spectrumStringGrid.Cells[1, Taille_Spectrum + 1 - j] := IntToStr(Spectrum[j]);
@@ -1302,7 +1377,7 @@ begin
     // Kossira reference plot
     FlightTimeLabel.Caption := Format('Flight time = %5.1f h', [FlightTime]);
     RLabel.Caption := Format('R = %8.1f', [R]);
-    Writeln(ResultFile, 'R = ', R:5:1);
+    // Writeln(ResultFile, 'R = ', R:5:1);
     // QueryPerformanceCounter(EndCount);
     // ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
     // Writeln(ResultFile, Format('Durée du Kossira: %.6f secondes', [ElapsedTime]));
@@ -1320,6 +1395,119 @@ begin
   // QueryPerformanceCounter(EndCount);
   // ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
   // Writeln(ResultFile, Format('Durée de l''affichage: %.6f secondes', [ElapsedTime]));
+end;
+
+procedure TMainForm.SaveIni;
+var
+  appINI, PlaneINI: TIniFile;
+  PlaneName: String;
+begin
+  appINI := TIniFile.Create(ChangeFileExt(Application.ExeName, '.ini'));
+  try
+    appINI.WriteString('User', 'Last', 'gfm');
+    appINI.WriteDate('User', 'Date', Now);
+    with appINI, MainForm do
+    begin
+      WriteInteger('Placement', 'Top', Top);
+      WriteInteger('Placement', 'Left', Left);
+      WriteInteger('Placement', 'Width', Width);
+      WriteInteger('Placement', 'Height', Height);
+      WriteString('DirectoryName', 'DirectoryName', RepertoireLabeledEdit.Text);
+    end;
+    // NomplaneurEdit.Text:=NomPlaneur;
+  finally
+    appINI.Free;
+  end;
+  DirectoryName := ExcludeTrailingPathDelimiter(DirectoryName);
+  // Retourne le dernier segment du chemin (le répertoire parent)
+  PlaneName := ExtractFileName(DirectoryName);
+  PlaneName := DirectoryName + '\' + PlaneName;
+  PlaneINI := TIniFile.Create(ChangeFileExt(PlaneName, '.ini'));
+  try // if no last user return an empty string
+    with PlaneINI, MainForm do
+    begin
+      WriteString('FileName', 'FileName', FileNameLabeledEdit.Text);
+      PlaneINI.WriteString('Data', 'Tau', ConfForm.Enveloppe_TAuLabeledEdit.Text);
+      PlaneINI.WriteString('Data', 'PullUp', ConfForm.PullUpLabeledEdit.Text);
+      PlaneINI.WriteString('Data', 'PullUpDelay', ConfForm.PullUpDelayLabeledEdit.Text);
+      PlaneINI.WriteString('Data', 'IntegratorThreshold', ConfForm.IntegratorThresholdLabeledEdit.Text);
+      PlaneINI.WriteString('Data', 'Deceleration', ConfForm.DecelerationLabeledEdit.Text);
+      PlaneINI.WriteString('Data', 'MinFlightDuration', ConfForm.MinFlightDurationLabeledEdit.Text);
+      PlaneINI.WriteString('Data', 'Touching', ConfForm.TouchLabeledEdit.Text);
+      PlaneINI.WriteString('Data', 'StopLevel', ConfForm.StopLabeledEdit.Text);
+      PlaneINI.WriteString('Data', 'NewFlightDelay', ConfForm.NewFlightDelayLabeledEdit.Text);
+    end;
+  finally
+    PlaneINI.Free;
+    SaveEnd := True;
+  end;
+end;
+
+procedure TMainForm.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  SaveIni;
+  // if SaveEnd then Close;
+end;
+
+procedure TMainForm.FormCreate(Sender: TObject);
+var
+  appINI, PlaneINI: TIniFile;
+  LastUser, PlaneName: string;
+  // LastDate: TDateTime;
+begin
+  ConfForm := TConfForm.Create(Self);
+  appINI := TIniFile.Create(ChangeFileExt(Application.ExeName, '.ini'));
+  try // if no last user return an empty string
+    LastUser := GetEnvironmentVariable('COMPUTERNAME');
+    if ('' = LastUser) then
+      LastUser := GetEnvironmentVariable('HOSTNAME');
+    // LastUser := appINI.ReadString('User','Last','') ;     //if no last date return todays date
+    // LastDate := appINI.ReadDate('User', 'Date', Date); // show the message
+    // ShowMessage('This program was previously used by ' + LastUser + ' on ' + DateToStr(LastDate));
+    Top := appINI.ReadInteger('Placement', 'Top', Top);
+    Left := appINI.ReadInteger('Placement', 'Left', Left);
+    Width := appINI.ReadInteger('Placement', 'Width', Width);
+    Height := appINI.ReadInteger('Placement', 'Height', Height);
+    FileName := appINI.ReadString('FileName', 'FileName', FileName);
+    DirectoryName := appINI.ReadString('DirectoryName', 'DirectoryName', DirectoryName);
+    if FileName <> '' then
+      FileNameLabeledEdit.Text := FileName;
+    if DirectoryName <> '' then
+      RepertoireLabeledEdit.Text := DirectoryName;
+  finally
+    PlaneINI.Free;
+  end;
+  DirectoryName := ExcludeTrailingPathDelimiter(DirectoryName);
+  // Retourne le dernier segment du chemin (le répertoire parent)
+  PlaneName := ExtractFileName(DirectoryName);
+  PlaneName := DirectoryName + '\' + PlaneName;
+  PlaneINI := TIniFile.Create(ChangeFileExt(PlaneName, '.ini'));
+  try // if no last user return an empty string
+    FileName := PlaneINI.ReadString('FileName', 'FileName', FileName);
+    Tau := PlaneINI.ReadFloat('Data', 'Tau', Tau) / 1000.0;
+    PullUp := PlaneINI.ReadFloat('Data', 'PullUp', PullUp);
+    PullUpDelay := PlaneINI.ReadFloat('Data', 'PullUpDelay', PullUpDelay);
+    IntegratorThreshold := PlaneINI.ReadFloat('Data', 'IntegratorThreshold', IntegratorThreshold);
+    Deceleration := PlaneINI.ReadFloat('Data', 'Deceleration', Deceleration);
+    MinFlightDuration := PlaneINI.ReadFloat('Data', 'MinFlightDuration', MinFlightDuration);
+    Touching := PlaneINI.ReadFloat('Data', 'Touching', Touching);
+    StopLevel := PlaneINI.ReadFloat('Data', 'StopLevel', StopLevel);
+    NewFlightDelay := PlaneINI.ReadFloat('Data', 'NewFlightDelay', NewFlightDelay);
+    if FileName <> '' then
+      FileNameLabeledEdit.Text := FileName;
+    ConfForm.Enveloppe_TAuLabeledEdit.Text := FloatToStr(Tau * 1000.0);
+    ConfForm.PullUpLabeledEdit.Text := FloatToStr(PullUp);
+    ConfForm.PullUpDelayLabeledEdit.Text := FloatToStr(PullUpDelay);
+    ConfForm.IntegratorThresholdLabeledEdit.Text := FloatToStr(IntegratorThreshold);
+    ConfForm.DecelerationLabeledEdit.Text := FloatToStr(Deceleration);
+    ConfForm.MinFlightDurationLabeledEdit.Text := FloatToStr(MinFlightDuration);
+    ConfForm.TouchLabeledEdit.Text := FloatToStr(Touching);
+    ConfForm.StopLabeledEdit.Text := FloatToStr(StopLevel);
+    ConfForm.NewFlightDelayLabeledEdit.Text := FloatToStr(NewFlightDelay);
+  finally
+    PlaneINI.Free;
+    // ConfForm.Show;
+  end;
 end;
 
 procedure TMainForm.Data_Processing(Sender: TObject);
@@ -1348,21 +1536,11 @@ begin
 
   // Lecture du fichier de données
   FileName := FileNameLabeledEdit.Text;
-  if not FileExists(FileName) then
-  begin
-    if FileOpenTextFileDialog.Execute then
-    begin
-      // AssignFile(BinaryFile, FileOpenTextFileDialog.FileName);
-      FileName := FileOpenTextFileDialog.FileName;
-      FileNameLabeledEdit.Text := FileName;
-    end
-    else
-      Exit;
-  end;
-  FileNameLabeledEdit.Text := FileName;
+  DirectoryName := RepertoireLabeledEdit.Text;
+  OpenClick(Sender);
   Chart1.Title.Caption := FileName;
   // QueryPerformanceCounter(StartCount);
-  DataBytes := TFile.ReadAllBytes(FileName);
+  DataBytes := TFile.ReadAllBytes(DirectoryName + FileName);
 
   if SortCheckBox.Checked then
   begin
@@ -1374,16 +1552,17 @@ begin
     Application.ProcessMessages;
   end;
   if Taxi_IncludedCheckBox.Checked then
-    ResFileName := Copy(FileName, 0, length(FileName) - 4) + '.ras'
+    ResFileName := Copy(FileName, 0, Length(FileName) - 4) + '.ras'
   else
-    ResFileName := Copy(FileName, 0, length(FileName) - 4) + '.res';
-  AssignFile(ResultFile, ResFileName);
+    ResFileName := Copy(FileName, 0, Length(FileName) - 4) + '.res';
+  AssignFile(ResultFile, DirectoryName + ResFileName);
   Rewrite(ResultFile);
   // QueryPerformanceCounter(EndCount);
   // ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
   // Writeln(ResultFile, Format('Durée du chargement du fichier: %.6f secondes', [ElapsedTime]));
   FileProcessing(Sender);
   CloseFile(ResultFile);
+  SaveIni;
 end;
 
 procedure TMainForm.RunButtonClick(Sender: TObject);
