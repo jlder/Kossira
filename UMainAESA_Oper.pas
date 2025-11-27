@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
-  System.Classes, Vcl.Graphics, System.IOUtils, System.Types, inifiles,// ← pour TFile et ReadAllBytes
+  System.Classes, Vcl.Graphics, System.IOUtils, System.Types, inifiles, // ← pour TFile et ReadAllBytes
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtDlgs, Vcl.StdCtrls, Vcl.Mask,
   Vcl.ExtCtrls, Vcl.ComCtrls, VCLTee.TeEngine, VCLTee.Series, VCLTee.TeeProcs,
   VCLTee.Chart, Vcl.Grids, Vcl.Menus, Math, UFFT, UButterworth, USort_Oper,
@@ -281,7 +281,7 @@ begin
   deltaT := StrToFloat(ConfForm.dtLabeledEdit.Text);
   ax_AB := TAlphaBeta.Create(NAccelx, deltaT, AccelOutlier, AccelMin, AccelMax);
   az_AB := TAlphaBeta.Create(NAccel, deltaT, AccelOutlier, AccelMin, AccelMax);
-  // Writeln(ResultFile, FileName);
+  Writeln(ResultFile, FileName);
   InitBuffer(BufAxd);
   InitBuffer(BufAzd);
   InitBuffer(BufAxh);
@@ -489,6 +489,7 @@ begin
     else
       Exit;
 end;
+
 procedure TMainForm.SaveIni;
 var
   appINI, PlaneINI: TIniFile;
@@ -534,7 +535,6 @@ begin
     SaveEnd := True;
   end;
 end;
-
 
 procedure TMainForm.SaveClick(Sender: TObject);
 begin
@@ -607,7 +607,7 @@ begin
             currTaxi.TaxiStart := Time64;
             currTaxi.idxTaxiStart := Index;
             Taxis[taxiIdx] := currTaxi;
-            // Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi');
+            Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi');
           end;
         end;
 
@@ -617,7 +617,7 @@ begin
         if ((HF > Deceleration)) and (Enveloppe > IntegratorThreshold) then
         begin
           phase := TaxiConfirm;
-          // Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi confirmed');
+          Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi confirmed');
         end
         else if ((HF < Deceleration) and ((Time64 - currFlight.TaxiStart) / 1000.0 > PullUpDelay)) then
         begin
@@ -629,7 +629,7 @@ begin
           Taxis[taxiIdx] := currTaxi;
           taxiIdx := taxiIdx + 1;
           SetLength(Taxis, taxiIdx + 1);
-          // Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi stop');
+          Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi stop');
         end;
 
       end;
@@ -648,7 +648,7 @@ begin
           if ((Time64 - currFlight.TakeOff) / 1000.0 < PullUpDelay) then
           begin
             phase := Air_presumed;
-            // Writeln(ResultFile, (currFlight.TakeOff / 1000.0):8:3, 'Air presumed');
+            Writeln(ResultFile, (currFlight.TakeOff / 1000.0):8:3, 'Air presumed');
           end;
         end
         else
@@ -663,7 +663,7 @@ begin
           Taxis[taxiIdx] := currTaxi;
           taxiIdx := taxiIdx + 1;
           SetLength(Taxis, taxiIdx + 1);
-          // Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi confirmed stop');
+          Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi confirmed stop');
         end;
       end;
 
@@ -672,7 +672,7 @@ begin
         if (Enveloppe > StopLevel) then
         begin
           phase := Air;
-          // Writeln(ResultFile, (currFlight.TakeOff / 1000.0):8:3, 'TakeOff');
+          Writeln(ResultFile, (currFlight.TakeOff / 1000.0):8:3, 'TakeOff');
         end
         else
         begin
@@ -686,7 +686,7 @@ begin
           Taxis[taxiIdx] := currTaxi;
           taxiIdx := taxiIdx + 1;
           SetLength(Taxis, taxiIdx + 1);
-          // Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi confirmed stop');
+          Writeln(ResultFile, (Time64 / 1000.0):8:3, ',', 'Taxi confirmed stop');
         end;
 
     Air:
@@ -699,7 +699,7 @@ begin
         currTaxi.idxTouchDown := Index;
         Taxis[taxiIdx] := currTaxi;
         phase := Taxi2;
-        // Writeln(ResultFile, Time64 / 1000.0:8:3, ',', 'Taxi2');
+        Writeln(ResultFile, Time64 / 1000.0:8:3, ',', 'Taxi2');
       end;
 
     Taxi2:
@@ -718,7 +718,7 @@ begin
         currTaxi.TAxiTime := currTaxi.TouchDown - currTaxi.TaxiStart;
         currTaxi.idxTaxiStop := Index;
         Taxis[taxiIdx] := currTaxi;
-        // Writeln(ResultFile, Time64 / 1000.0:8:3, ',', 'Landing');
+        Writeln(ResultFile, Time64 / 1000.0:8:3, ',', 'Landing');
       end;
     Landing:
       // Attente d'un nouveau départ
@@ -751,6 +751,7 @@ begin
         currTaxi.idxTaxiStop := 0;
         currTaxi.TAxiTime := 0.0;
         Taxis[taxiIdx] := currTaxi;
+        Writeln(ResultFile, Time64 / 1000.0:8:3, ',', 'Attente d''un nouveau départ');
       end;
   end;
 end;
@@ -957,7 +958,8 @@ var // Butterworth variables
           K := 50;
         2:
           K := 1;
-          else K:=1;
+      else
+        K := 1;
       end;
       Series1.Title := 'inFlight';
       Series3.Title := 'An';
@@ -1065,33 +1067,33 @@ begin
     end;
   end;
 
-(*   for i := 0 to High(Samples) do // Scanning throw all the data  for finding the max value of An
-  begin
+  (* for i := 0 to High(Samples) do // Scanning throw all the data  for finding the max value of An
+    begin
     if (Samples[i].Acc.Success) and (Samples[i].Time.Success_t) then
     // If accelerations are valid
     begin
-      Ax := Samples[i].Acc.Ax;
-      Ay := Samples[i].Acc.Ay;
-      nff := Samples[i].Acc.az; // Taking account of the frame NED or not
-      An := (1 - Tau) * An + Tau * (Sqrt(Ax * Ax + Ay * Ay + nff * nff) - 1.0 - MeanAn);
-      if An > Maxn then
-        Maxn := An;
+    Ax := Samples[i].Acc.Ax;
+    Ay := Samples[i].Acc.Ay;
+    nff := Samples[i].Acc.az; // Taking account of the frame NED or not
+    An := (1 - Tau) * An + Tau * (Sqrt(Ax * Ax + Ay * Ay + nff * nff) - 1.0 - MeanAn);
+    if An > Maxn then
+    Maxn := An;
     end
     else
     begin
-      Application.MessageBox('Invalid message', 'Attention', IDOK);
-      Halt(0);
+    Application.MessageBox('Invalid message', 'Attention', IDOK);
+    Halt(0);
     end;
     EoFTime := Samples[i].Time.TimeMs;
     MainForm.Chart1.BottomAxis.Automatic := True;
     MainForm.Chart1.BottomAxis.Minimum := 0;
     MainForm.Chart1.BottomAxis.Maximum := EoFTime / 1000.0;
     MainForm.Chart1.BottomAxis.Minimum := Temps0;
-  end;
-  if (Maxn > 0.5) and (Maxn < 1.5) then
+    end;
+    if (Maxn > 0.5) and (Maxn < 1.5) then
     Maxn := 1.0;
-  Label1.Caption := FloatToStr(Maxn);
-  ProgressBar1.Position := 20;
+    Label1.Caption := FloatToStr(Maxn);
+    ProgressBar1.Position := 20;
     // Second step : Data sharing between Ground, Taxi and flight
     Initialisation(Sender);
     for i := 0 to High(Samples) do // Scanning throw all the data
@@ -1266,36 +1268,26 @@ begin
             Graphix(Enveloppe, Y);
           end;
         2:
+          if (i mod 16 = 0) then
           begin
-            if (Temps > 68340) and (Temps < 68440) then
-              Write(ResultFile, Temps:8:3, ',', An / Maxn:8:5, ',');
-            begin
-              if (i mod 16 = 0) then
-              begin
-                case ConfForm.OndeletteOrderRadioGroup.ItemIndex of // Calcul ondelettes 2 niveaux Db4
-                  0:
-                    DWT_2Levels(BufAzd.Data, Approx2, Detail2, Detail1);
-                  1:
-                    DWT_4Levels(BufAzd.Data, Approx2, Detail2, Detail1);
-                  2:
-                    DWT_3Levels(BufAzd.Data, Approx2, Detail2, Detail1);
-                end;
-                X := Sqrt(SumOfSquares(Detail2) / Length(Detail2));
-                Y := Sqrt(SumOfSquares(Detail1) / Length(Detail1));
-                if (Temps > 68340) and (Temps < 68440) then
-                  Writeln(ResultFile, X:8:5, ',', Y:8:5);
-
-                // Affichage simple de la moyenne d’énergie des coefficients de détail
-                // Label1.Caption := Format('Énergie Detail Niveau 1 (3 Hz approx.) : %6.4f', [Y]);
-                // Label2.Caption := Format('Énergie Detail Niveau 2 (1 Hz approx.) : %6.4f', [X]);
-                If (X > 1E-10) and (X < 1E10) then
-                  Enveloppe := (1 - Tau) * Enveloppe + Tau * X;
-                DetectPhases(i, Samples[i].Time.TimeMs, Enveloppe, Y, Flights, Taxis);
-                Graphix(Enveloppe, Y);
-              end
-              else
-                Writeln(ResultFile);
+            case ConfForm.OndeletteOrderRadioGroup.ItemIndex of // Calcul ondelettes 2 niveaux Db4
+              0:
+                DWT_2Levels(BufAzd.Data, Approx2, Detail2, Detail1);
+              1:
+                DWT_4Levels(BufAzd.Data, Approx2, Detail2, Detail1);
+              2:
+                DWT_3Levels(BufAzd.Data, Approx2, Detail2, Detail1);
             end;
+            X := Sqrt(SumOfSquares(Detail2) / Length(Detail2));
+            Y := Sqrt(SumOfSquares(Detail1) / Length(Detail1));
+
+            // Affichage simple de la moyenne d’énergie des coefficients de détail
+            // Label1.Caption := Format('Énergie Detail Niveau 1 (3 Hz approx.) : %6.4f', [Y]);
+            // Label2.Caption := Format('Énergie Detail Niveau 2 (1 Hz approx.) : %6.4f', [X]);
+            If (X > 1E-10) and (X < 1E10) then
+              Enveloppe := (1 - Tau) * Enveloppe + Tau * X;
+            DetectPhases(i, Samples[i].Time.TimeMs, Enveloppe, Y, Flights, Taxis);
+            Graphix(Enveloppe, Y);
           end;
       end;
 
@@ -1390,9 +1382,9 @@ begin
 
     // Fourth step : Markov matrixes elaboration
     // QueryPerformanceCounter(StartCount);
-    // Writeln(ResultFile, 'StartTime (s) :', Flights[0].TaxiStart / 3600000:10:3, ' EndTime (h) :', Flights[High(Flights)].TaxiStop / 3600000:10:3,
-    // ' FlightTime (h) :', FlightTime:10:3);
-    // Writeln(ResultFile, ' Classes (g)', #9, 'occurs');
+    Writeln(ResultFile, 'StartTime (s) :', Flights[0].TaxiStart / 3600000:10:3, ' EndTime (h) :', Flights[High(Flights)].TaxiStop / 3600000:10:3,
+      ' FlightTime (h) :', FlightTime:10:3);
+    Writeln(ResultFile, ' Classes (g)', #9, 'occurs');
     Matrixes_elaboration; // Markov matrixes computation
     // Kossira'curve and Memo1 title
     Series5.Title := FileName;
@@ -1408,7 +1400,7 @@ begin
       Occurs := Spectrum[j] * (6000.0) / (FlightTime);
       // Normalisation for 6000h to be compared with the Kossira reference
       Classes := ((j + 0.5) * QuantumRough + LowG);
-      // Writeln(ResultFile, Classes:8:3, #9, Spectrum[j]:12);
+      Writeln(ResultFile, Classes:8:3, #9, Spectrum[j]:12);
       if Spectrum[j] <> 0 then
       begin
         spectrumStringGrid.Cells[1, Taille_Spectrum + 1 - j] := IntToStr(Spectrum[j]);
@@ -1421,7 +1413,7 @@ begin
     // Kossira reference plot
     FlightTimeLabel.Caption := Format('Flight time = %5.1f h', [FlightTime]);
     RLabel.Caption := Format('R = %8.1f', [R]);
-    // Writeln(ResultFile, 'R = ', R:5:1);
+    Writeln(ResultFile, 'R = ', R:5:1);
     // QueryPerformanceCounter(EndCount);
     // ElapsedTime := (EndCount - StartCount) / Frequency; // temps en secondes
     // Writeln(ResultFile, Format('Durée du Kossira: %.6f secondes', [ElapsedTime]));
@@ -1474,12 +1466,12 @@ begin
   finally
     appINI.Free;
   end;
- end;
+end;
 
 procedure TMainForm.Data_Processing(Sender: TObject);
 Var
   PlaneINI: TIniFile;
-  PlaneName : String;
+  PlaneName: String;
 begin
   // QueryPerformanceFrequency(Frequency);
   RunningLabel.Caption := 'Running';
@@ -1510,7 +1502,7 @@ begin
   Chart1.Title.Caption := FileName;
   // QueryPerformanceCounter(StartCount);
   DataBytes := TFile.ReadAllBytes(DirectoryName + FileName);
-  FileNameLabeledEdit.text:=FileName;
+  FileNameLabeledEdit.Text := FileName;
   if SortCheckBox.Checked then
   begin
     FlightTimeLabel.Caption := 'Sorting';
